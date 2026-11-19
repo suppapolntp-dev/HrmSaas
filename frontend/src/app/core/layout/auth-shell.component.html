@@ -1,0 +1,39 @@
+<div class="auth-shell">
+  <header class="auth-topbar">
+    <div class="auth-brand">
+      <span class="auth-brand-mark" aria-hidden="true"></span>
+      <span class="auth-brand-name">hrm</span>
+    </div>
+
+    <div class="auth-tools">
+      @if (appConfig.enableApiToggle) {
+        <button
+          type="button"
+          class="btn-secondary focus-ring"
+          (click)="onToggleApi()"
+        >
+          <span
+            class="status-dot"
+            [class.status-dot-success]="apiToggleService.isApiEnabled()"
+            [class.status-dot-danger]="!apiToggleService.isApiEnabled()"
+          ></span>
+          <span>{{ apiToggleService.isApiEnabled() ? 'API: ON' : 'API: OFF' }}</span>
+        </button>
+      }
+
+      <button
+        type="button"
+        class="btn-secondary focus-ring"
+        (click)="onToggleTheme()"
+      >
+        <span>{{ themeService.theme() === 'dark' ? 'โหมดสว่าง' : 'โหมดมืด' }}</span>
+      </button>
+    </div>
+  </header>
+
+  <main class="auth-main">
+    <div class="auth-card surface-card">
+      <router-outlet />
+    </div>
+  </main>
+</div>

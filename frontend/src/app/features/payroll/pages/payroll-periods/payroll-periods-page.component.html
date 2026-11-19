@@ -1,0 +1,98 @@
+<div class="page-stack">
+  <header class="page-header">
+    <div class="page-heading">
+      <h1 class="page-title">งวดเงินเดือน</h1>
+      <p class="page-subtitle">จัดการรอบจ่ายเงินเดือน วันตัดรอบเวลาทำงาน และเข้าสู่หน้าคำนวณประจำงวด</p>
+    </div>
+    <div class="header-actions">
+      <button type="button" class="btn-primary focus-ring" (click)="openCreateDrawer()">สร้างงวดเงินเดือนใหม่</button>
+    </div>
+  </header>
+
+  @if (feedbackSuccess(); as msg) {
+    <div class="feedback-banner is-success" role="status">
+      <span>{{ msg }}</span>
+      <button type="button" class="btn-secondary focus-ring" (click)="feedbackSuccess.set(null)">ปิด</button>
+    </div>
+  }
+
+  <app-state-container
+    [isLoading]="isLoading()"
+    [isEmpty]="periods().length === 0"
+    [errorMessage]="errorMessage()"
+    errorTitle="ไม่สามารถโหลดรายการงวดเงินเดือนได้"
+    emptyTitle="ยังไม่มีงวดเงินเดือน"
+    emptyDescription="กดปุ่ม สร้างงวดเงินเดือนใหม่ เพื่อเริ่มรอบบัญชีเงินเดือน"
+    [skeletonRows]="5"
+    (retry)="loadPeriods()"
+  >
+    <app-data-table
+      title="รอบบัญชีเงินเดือนทั้งหมด"
+      [searchable]="true"
+      searchPlaceholder="ค้นหารหัสงวด เช่น 2026-11..."
+      [searchQuery]="searchQuery()"
+      [columns]="columns"
+      [rows]="filteredPeriods()"
+      [actions]="tableActions"
+      [clickableRows]="true"
+      [showSortDropdown]="false"
+      [page]="page()"
+      [pageSize]="pageSize()"
+      [totalCount]="filteredPeriods().length"
+      [cellTemplates]="{
+        periodStart: startCell,
+        periodEnd: endCell,
+        attendanceCutoffDate: cutoffCell,
+        payDate: payCell,
+        status: statusCell
+      }"
+      (searchChange)="searchQuery.set($event); page.set(1)"
+      (pageChange)="page.set($event)"
+      (pageSizeChange)="pageSize.set($event); page.set(1)"
+      (rowClick)="openRunPage($event)"
+    />
+
+    <ng-template #startCell let-row><span class="tabular-nums">{{ formatDate(row.periodStart) }}</span></ng-template>
+    <ng-template #endCell let-row><span class="tabular-nums">{{ formatDate(row.periodEnd) }}</span></ng-template>
+    <ng-template #cutoffCell let-row><span class="tabular-nums">{{ formatDate(row.attendanceCutoffDate) }}</span></ng-template>
+    <ng-template #payCell let-row><span class="tabular-nums">{{ formatDate(row.payDate) }}</span></ng-template>
+    <ng-template #statusCell let-row>
+      <app-status-indicator [label]="getStatusLabel(row.status)" [tone]="getStatusTone(row.status)" />
+    </ng-template>
+  </app-state-container>
+
+  <app-slide-drawer
+    [isOpen]="isDrawerOpen()"
+    title="สร้างงวดเงินเดือนใหม่"
+    (closed)="isDrawerOpen.set(false)"
+  >
+    <form class="drawer-form" [formGroup]="periodForm" (ngSubmit)="submitPeriod()">
+      @if (formError(); as errMsg) {
+        <div class="feedback-banner is-error" role="alert">{{ errMsg }}</div>
+      }
+      <app-form-field label="รหัสงวด" forId="pp-code" [required]="true" [control]="periodForm.controls.periodCode">
+        <input id="pp-code" type="text" class="form-control focus-ring" formControlName="periodCode" placeholder="2026-11" />
+      </app-form-field>
+      <div class="form-grid-2">
+        <app-form-field label="วันเริ่มต้นงวด" forId="pp-start" [required]="true" [control]="periodForm.controls.periodStart">
+          <input id="pp-start" type="date" class="form-control focus-ring" formControlName="periodStart" />
+        </app-form-field>
+        <app-form-field label="วันสิ้นสุดงวด" forId="pp-end" [required]="true" [control]="periodForm.controls.periodEnd">
+          <input id="pp-end" type="date" class="form-control focus-ring" formControlName="periodEnd" />
+        </app-form-field>
+      </div>
+      <div class="form-grid-2">
+        <app-form-field label="วันตัดรอบเวลาทำงาน" forId="pp-cut" [required]="true" [control]="periodForm.controls.attendanceCutoffDate">
+          <input id="pp-cut" type="date" class="form-control focus-ring" formControlName="attendanceCutoffDate" />
+        </app-form-field>
+        <app-form-field label="วันจ่ายเงินเดือน" forId="pp-pay" [required]="true" [control]="periodForm.controls.payDate">
+          <input id="pp-pay" type="date" class="form-control focus-ring" formControlName="payDate" />
+        </app-form-field>
+      </div>
+      <div class="drawer-actions">
+        <button type="button" class="btn-secondary focus-ring" (click)="isDrawerOpen.set(false)">ยกเลิก</button>
+        <button type="submit" class="btn-primary focus-ring" [disabled]="isSubmitting()">สร้างงวดเงินเดือน</button>
+      </div>
+    </form>
+  </app-slide-drawer>
+</div>

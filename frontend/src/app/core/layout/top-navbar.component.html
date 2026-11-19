@@ -1,0 +1,82 @@
+<header class="topbar">
+  <div class="topbar-left">
+    <button
+      type="button"
+      class="mobile-menu-btn focus-ring"
+      (click)="mobileNavToggle.emit()"
+      aria-label="สลับเมนูนำทาง"
+    >
+      เมนู
+    </button>
+
+    @if (companies().length > 0) {
+      <div class="context-switchers">
+        <label class="sr-only" for="company-switcher">เลือกบริษัท</label>
+        <select
+          id="company-switcher"
+          class="context-select focus-ring"
+          [value]="activeCompanyId() ?? ''"
+          [disabled]="isSwitchingContext()"
+          (change)="onSelectCompany($event)"
+        >
+          @for (company of companies(); track company.companyId) {
+            <option [value]="company.companyId">
+              {{ company.code }} — {{ company.legalName }}
+            </option>
+          }
+        </select>
+
+        @if (availableBranches().length > 0) {
+          <label class="sr-only" for="branch-switcher">เลือกสาขา</label>
+          <select
+            id="branch-switcher"
+            class="context-select focus-ring"
+            [value]="activeBranchId() ?? ''"
+            [disabled]="isSwitchingContext()"
+            (change)="onSelectBranch($event)"
+          >
+            @for (branch of availableBranches(); track branch.branchId) {
+              <option [value]="branch.branchId">
+                {{ branch.code }} — {{ branch.name }}
+              </option>
+            }
+          </select>
+        }
+      </div>
+    }
+  </div>
+
+  <div class="topbar-right">
+    @if (enableApiToggle()) {
+      <button
+        type="button"
+        class="btn-secondary focus-ring"
+        (click)="apiToggle.emit()"
+      >
+        <span
+          class="status-dot"
+          [class.status-dot-success]="isApiEnabled()"
+          [class.status-dot-danger]="!isApiEnabled()"
+        ></span>
+        <span>{{ isApiEnabled() ? 'API: ON' : 'API: OFF' }}</span>
+      </button>
+    }
+
+    <button
+      type="button"
+      class="btn-secondary focus-ring"
+      (click)="themeToggle.emit()"
+    >
+      <span>{{ theme() === 'dark' ? 'โหมดสว่าง' : 'โหมดมืด' }}</span>
+    </button>
+
+    <button
+      type="button"
+      class="btn-secondary focus-ring"
+      [disabled]="isLoggingOut()"
+      (click)="logout.emit()"
+    >
+      {{ isLoggingOut() ? 'กำลังออก...' : 'ออกจากระบบ' }}
+    </button>
+  </div>
+</header>

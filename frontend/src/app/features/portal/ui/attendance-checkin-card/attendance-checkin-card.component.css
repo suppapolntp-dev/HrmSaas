@@ -1,0 +1,158 @@
+@import '../../../../../styles/_shared-layout.css';
+
+.checkin-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.checkin-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.checkin-meta {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.checkin-title-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.checkin-subtitle {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.live-clock-block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-1);
+}
+
+.clock-label {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.clock-value {
+  font-size: var(--text-xl);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.shift-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background-color: var(--surface-subtle);
+  border: 1px solid var(--border-subtle);
+}
+
+.shift-info,
+.shift-hours {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.shift-hours {
+  align-items: flex-end;
+}
+
+.shift-caption {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.shift-name,
+.shift-time {
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-primary);
+}
+
+.shift-code {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.punch-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.metric-cell {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-3);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--surface-card);
+}
+
+.metric-label {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.metric-value {
+  font-size: var(--text-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.punch-error-text {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--text-primary);
+}
+
+.checkin-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.cta-punch {
+  min-height: 44px;
+  padding: 0 var(--space-6);
+}
+
+.completed-note {
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--status-success-fg);
+}
+
+@media (max-width: 640px) {
+  .live-clock-block,
+  .shift-hours {
+    align-items: flex-start;
+  }
+
+  .punch-metrics-grid {
+    grid-template-columns: 1fr;
+  }
+}

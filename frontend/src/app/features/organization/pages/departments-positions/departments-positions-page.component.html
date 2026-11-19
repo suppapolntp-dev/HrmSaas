@@ -1,0 +1,219 @@
+<div class="page-stack">
+  <header class="page-header">
+    <div class="page-heading">
+      <h1 class="page-title">แผนกและตำแหน่ง</h1>
+      <p class="page-subtitle">จัดการผังโครงสร้างแผนกลำดับชั้น ตำแหน่งงาน และระดับพนักงาน</p>
+    </div>
+
+    <div class="header-actions">
+      <button type="button" class="btn-primary focus-ring" (click)="openCreateForActiveTab()">
+        @if (activeTab() === 'DEPARTMENTS') {
+          เพิ่มแผนกใหม่
+        } @else if (activeTab() === 'POSITIONS') {
+          เพิ่มตำแหน่งใหม่
+        } @else {
+          เพิ่มระดับพนักงาน
+        }
+      </button>
+    </div>
+  </header>
+
+  @if (feedbackSuccess(); as msg) {
+    <div class="feedback-banner is-success" role="status">
+      <span>{{ msg }}</span>
+      <button type="button" class="btn-secondary focus-ring" (click)="feedbackSuccess.set(null)">ปิด</button>
+    </div>
+  }
+
+  <nav class="tab-strip" aria-label="สลับหมวดโครงสร้างองค์กร">
+    <button
+      type="button"
+      class="tab-btn focus-ring"
+      [class.is-active]="activeTab() === 'DEPARTMENTS'"
+      (click)="activeTab.set('DEPARTMENTS'); searchQuery.set(''); page.set(1)"
+    >
+      โครงสร้างแผนก ({{ departments().length }})
+    </button>
+    <button
+      type="button"
+      class="tab-btn focus-ring"
+      [class.is-active]="activeTab() === 'POSITIONS'"
+      (click)="activeTab.set('POSITIONS'); searchQuery.set(''); page.set(1)"
+    >
+      ตำแหน่งงาน ({{ positions().length }})
+    </button>
+    <button
+      type="button"
+      class="tab-btn focus-ring"
+      [class.is-active]="activeTab() === 'GRADES'"
+      (click)="activeTab.set('GRADES'); searchQuery.set(''); page.set(1)"
+    >
+      ระดับพนักงาน ({{ jobGrades().length }})
+    </button>
+  </nav>
+
+  <app-state-container
+    [isLoading]="isLoading()"
+    [isEmpty]="
+      activeTab() === 'DEPARTMENTS'
+        ? departments().length === 0
+        : activeTab() === 'POSITIONS'
+          ? positions().length === 0
+          : jobGrades().length === 0
+    "
+    [errorMessage]="errorMessage()"
+    errorTitle="ไม่สามารถโหลดโครงสร้างองค์กรได้"
+    emptyTitle="ยังไม่มีข้อมูลในหมวดนี้"
+    emptyDescription="กดปุ่มเพิ่มรายการด้านบนเพื่อสร้างข้อมูลตั้งต้น"
+    [skeletonRows]="5"
+    (retry)="loadData()"
+  >
+    @if (activeTab() === 'DEPARTMENTS') {
+      <app-data-table
+        title="ผังโครงสร้างแผนก"
+        [searchable]="true"
+        searchPlaceholder="ค้นหารหัสหรือชื่อแผนก..."
+        [searchQuery]="searchQuery()"
+        [columns]="deptColumns"
+        [rows]="flattenedDepartments()"
+        [actions]="deptActions"
+        [showSortDropdown]="false"
+        [page]="page()"
+        [pageSize]="pageSize()"
+        [totalCount]="flattenedDepartments().length"
+        [cellTemplates]="{ name: deptNameCell }"
+        (searchChange)="searchQuery.set($event); page.set(1)"
+        (pageChange)="page.set($event)"
+        (pageSizeChange)="pageSize.set($event); page.set(1)"
+      />
+      <ng-template #deptNameCell let-row>
+        <span class="text-muted">{{ formatDeptIndent(row.depth) }}</span>
+        <span>{{ row.name }}</span>
+      </ng-template>
+    } @else if (activeTab() === 'POSITIONS') {
+      <app-data-table
+        title="รายการตำแหน่งงาน"
+        [searchable]="true"
+        searchPlaceholder="ค้นหารหัสหรือชื่อตำแหน่ง..."
+        [searchQuery]="searchQuery()"
+        [columns]="posColumns"
+        [rows]="filteredPositions()"
+        [actions]="posActions"
+        [showSortDropdown]="false"
+        [page]="page()"
+        [pageSize]="pageSize()"
+        [totalCount]="filteredPositions().length"
+        (searchChange)="searchQuery.set($event); page.set(1)"
+        (pageChange)="page.set($event)"
+        (pageSizeChange)="pageSize.set($event); page.set(1)"
+      />
+    } @else {
+      <app-data-table
+        title="ระดับพนักงาน (Job Grades)"
+        [searchable]="true"
+        searchPlaceholder="ค้นหารหัสหรือชื่อระดับ..."
+        [searchQuery]="searchQuery()"
+        [columns]="gradeColumns"
+        [rows]="filteredGrades()"
+        [actions]="gradeActions"
+        [showSortDropdown]="false"
+        [page]="page()"
+        [pageSize]="pageSize()"
+        [totalCount]="filteredGrades().length"
+        (searchChange)="searchQuery.set($event); page.set(1)"
+        (pageChange)="page.set($event)"
+        (pageSizeChange)="pageSize.set($event); page.set(1)"
+      />
+    }
+  </app-state-container>
+
+  <app-slide-drawer
+    [isOpen]="isDeptDrawerOpen()"
+    [title]="editingDept() ? 'แก้ไขแผนก' : 'เพิ่มแผนกใหม่'"
+    (closed)="isDeptDrawerOpen.set(false)"
+  >
+    <form class="drawer-form" [formGroup]="deptForm" (ngSubmit)="submitDept()">
+      @if (formError(); as errMsg) {
+        <div class="feedback-banner is-error" role="alert">{{ errMsg }}</div>
+      }
+      <app-form-field label="รหัสแผนก" forId="dept-code" [required]="true" [control]="deptForm.controls.code">
+        <input id="dept-code" type="text" class="form-control focus-ring" formControlName="code" />
+      </app-form-field>
+      <app-form-field label="ชื่อแผนก" forId="dept-name" [required]="true" [control]="deptForm.controls.name">
+        <input id="dept-name" type="text" class="form-control focus-ring" formControlName="name" />
+      </app-form-field>
+      <app-form-field label="อยู่ภายใต้แผนกหลัก" forId="dept-parent" [control]="deptForm.controls.parentDepartmentId">
+        <select id="dept-parent" class="form-control focus-ring" formControlName="parentDepartmentId">
+          <option value="">ไม่มี (แผนกระดับบนสุด)</option>
+          @for (d of departments(); track d.id) {
+            @if (!editingDept() || d.id !== editingDept()!.id) {
+              <option [value]="d.id">{{ d.code }} · {{ d.name }}</option>
+            }
+          }
+        </select>
+      </app-form-field>
+      <div class="drawer-actions">
+        <button type="button" class="btn-secondary focus-ring" (click)="isDeptDrawerOpen.set(false)">ยกเลิก</button>
+        <button type="submit" class="btn-primary focus-ring" [disabled]="isSubmitting()">บันทึกแผนก</button>
+      </div>
+    </form>
+  </app-slide-drawer>
+
+  <app-slide-drawer
+    [isOpen]="isPosDrawerOpen()"
+    [title]="editingPos() ? 'แก้ไขตำแหน่งงาน' : 'เพิ่มตำแหน่งงาน'"
+    (closed)="isPosDrawerOpen.set(false)"
+  >
+    <form class="drawer-form" [formGroup]="posForm" (ngSubmit)="submitPos()">
+      @if (formError(); as errMsg) {
+        <div class="feedback-banner is-error" role="alert">{{ errMsg }}</div>
+      }
+      <app-form-field label="รหัสตำแหน่ง" forId="pos-code" [required]="true" [control]="posForm.controls.code">
+        <input id="pos-code" type="text" class="form-control focus-ring" formControlName="code" />
+      </app-form-field>
+      <app-form-field label="ชื่อตำแหน่งงาน" forId="pos-title" [required]="true" [control]="posForm.controls.title">
+        <input id="pos-title" type="text" class="form-control focus-ring" formControlName="title" />
+      </app-form-field>
+      <div class="drawer-actions">
+        <button type="button" class="btn-secondary focus-ring" (click)="isPosDrawerOpen.set(false)">ยกเลิก</button>
+        <button type="submit" class="btn-primary focus-ring" [disabled]="isSubmitting()">บันทึกตำแหน่ง</button>
+      </div>
+    </form>
+  </app-slide-drawer>
+
+  <app-slide-drawer
+    [isOpen]="isGradeDrawerOpen()"
+    [title]="editingGrade() ? 'แก้ไขระดับพนักงาน' : 'เพิ่มระดับพนักงาน'"
+    (closed)="isGradeDrawerOpen.set(false)"
+  >
+    <form class="drawer-form" [formGroup]="gradeForm" (ngSubmit)="submitGrade()">
+      @if (formError(); as errMsg) {
+        <div class="feedback-banner is-error" role="alert">{{ errMsg }}</div>
+      }
+      <app-form-field label="รหัสระดับ" forId="grade-code" [required]="true" [control]="gradeForm.controls.code">
+        <input id="grade-code" type="text" class="form-control focus-ring" formControlName="code" />
+      </app-form-field>
+      <app-form-field label="ลำดับระดับ (ตัวเลข)" forId="grade-order" [required]="true" [control]="gradeForm.controls.levelOrder">
+        <input id="grade-order" type="number" min="1" class="form-control focus-ring" formControlName="levelOrder" />
+      </app-form-field>
+      <app-form-field label="ชื่อระดับพนักงาน" forId="grade-name" [required]="true" [control]="gradeForm.controls.name">
+        <input id="grade-name" type="text" class="form-control focus-ring" formControlName="name" />
+      </app-form-field>
+      <div class="drawer-actions">
+        <button type="button" class="btn-secondary focus-ring" (click)="isGradeDrawerOpen.set(false)">ยกเลิก</button>
+        <button type="submit" class="btn-primary focus-ring" [disabled]="isSubmitting()">บันทึกระดับ</button>
+      </div>
+    </form>
+  </app-slide-drawer>
+
+  <app-confirm-dialog
+    [isOpen]="deleteDeptTarget() !== null"
+    title="ยืนยันการลบแผนก"
+    [message]="'ต้องการลบแผนก ' + (deleteDeptTarget()?.name ?? '') + ' ใช่หรือไม่?'"
+    confirmLabel="ยืนยันการลบ"
+    tone="danger"
+    [isSubmitting]="isDeletingDept()"
+    (confirmed)="confirmDeleteDept()"
+    (cancelled)="deleteDeptTarget.set(null)"
+  />
+</div>

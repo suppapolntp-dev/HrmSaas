@@ -1,0 +1,76 @@
+<div class="select-company-container">
+  <header class="select-header">
+    <h1 class="select-title">เลือกบริษัทและสาขา</h1>
+    <p class="select-subtitle">
+      เลือกบริษัทย่อยและสาขาที่ต้องการปฏิบัติงานในรอบนี้
+    </p>
+  </header>
+
+  <app-state-container
+    [isLoading]="isLoading()"
+    [isEmpty]="companies().length === 0"
+    [errorMessage]="errorMessage()"
+    emptyTitle="ไม่พบบริษัทที่บัญชีนี้มีสิทธิ์เข้าถึง"
+    emptyDescription="กรุณาติดต่อผู้ดูแลระบบหรือฝ่ายบุคคลเพื่อผูกสิทธิ์บริษัทให้บัญชีของคุณ"
+    [skeletonRows]="3"
+    (retry)="onReloadContext()"
+  >
+    <div slot-empty-action>
+      <button type="button" class="btn-secondary focus-ring" (click)="onLogout()">
+        กลับไปหน้าเข้าสู่ระบบ
+      </button>
+    </div>
+
+    <div class="company-list" role="radiogroup" aria-label="รายชื่อบริษัท">
+      @for (company of companies(); track company.companyId) {
+        <button
+          type="button"
+          class="company-option focus-ring"
+          [class.company-option-selected]="selectedCompanyId() === company.companyId"
+          (click)="onSelectCompany(company.companyId)"
+        >
+          <span class="company-code font-mono">{{ company.code }}</span>
+          <span class="company-name">{{ company.legalName }}</span>
+        </button>
+      }
+    </div>
+
+    @if (branchesForSelectedCompany().length > 0) {
+      <div class="branch-picker">
+        <app-form-field label="สาขาเริ่มต้น" forId="select-branch-input">
+          <select
+            id="select-branch-input"
+            class="form-control"
+            [value]="selectedBranchId() ?? ''"
+            (change)="onBranchChange($event)"
+          >
+            @for (branch of branchesForSelectedCompany(); track branch.branchId) {
+              <option [value]="branch.branchId">
+                {{ branch.code }} — {{ branch.name }}
+              </option>
+            }
+          </select>
+        </app-form-field>
+      </div>
+    }
+
+    <div class="select-actions">
+      <button
+        type="button"
+        class="btn-secondary focus-ring"
+        [disabled]="isSubmitting()"
+        (click)="onLogout()"
+      >
+        ออกจากระบบ
+      </button>
+      <button
+        type="button"
+        class="btn-primary focus-ring continue-btn"
+        [disabled]="isSubmitting() || selectedCompanyId().length === 0"
+        (click)="onContinue()"
+      >
+        {{ isSubmitting() ? 'กำลังสลับบริษัท...' : 'เข้าสู่ระบบงาน' }}
+      </button>
+    </div>
+  </app-state-container>
+</div>

@@ -1,0 +1,125 @@
+:root {
+  /* =========================================================================
+     1. 60% SURFACE & ELEVATION TOKENS (Calm Enterprise Light Canvas)
+     ========================================================================= */
+  --surface-page: #f8fafc;
+  --surface-card: #ffffff;
+  --surface-elevated: #ffffff;
+  --surface-subtle: #f1f5f9;
+  --surface-hover: #f1f5f9;
+  --surface-selected: #fff7ed;
+  --surface-overlay: rgba(15, 23, 42, 0.45);
+
+  /* =========================================================================
+     2. 30% TEXT & STRUCTURAL BORDER TOKENS
+     ========================================================================= */
+  --text-primary: #0f172a;
+  --text-secondary: #334155;
+  --text-muted: #64748b;
+  --text-inverse: #ffffff;
+  --text-brand: #c2410c;
+
+  --border-subtle: #e2e8f0;
+  --border-strong: #cbd5e1;
+  --border-focus: #f97316;
+
+  /* =========================================================================
+     3. 10% BRAND & INTERACTIVE ACTION TOKENS (Sunset Orange)
+     ========================================================================= */
+  --action-primary-bg: #f97316;
+  --action-primary-hover: #fb923c;
+  --action-primary-text: #ffffff;
+
+  --action-secondary-bg: #ffffff;
+  --action-secondary-hover: #f8fafc;
+  --action-secondary-text: #0f172a;
+
+  /* =========================================================================
+     4. SEMANTIC STATUS TOKENS (Text & Indicator Dot/Border Only — NO BADGE BG)
+     ========================================================================= */
+  --status-success-fg: #15803d;
+  --status-warning-fg: #b45309;
+  --status-danger-fg: #b91c1c;
+  --status-info-fg: #0369a1;
+  --status-neutral-fg: #64748b;
+
+  /* =========================================================================
+     5. 8PT SPATIAL GRID & RADIUS TOKENS
+     ========================================================================= */
+  --space-1: 0.25rem;  /* 4px */
+  --space-2: 0.5rem;   /* 8px */
+  --space-3: 0.75rem;  /* 12px */
+  --space-4: 1rem;     /* 16px */
+  --space-6: 1.5rem;   /* 24px */
+  --space-8: 2rem;     /* 32px */
+  --space-12: 3rem;    /* 48px */
+
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 14px;
+  --radius-full: 9999px;
+
+  /* =========================================================================
+     6. TYPOGRAPHY, SHADOW & MOTION TOKENS
+     ========================================================================= */
+  --font-sans: 'Inter', 'Anuphan', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  --text-xs: 0.75rem;    /* 12px */
+  --text-sm: 0.875rem;   /* 14px */
+  --text-base: 1rem;     /* 16px */
+  --text-lg: 1.125rem;   /* 18px */
+  --text-xl: 1.25rem;    /* 20px */
+  --text-2xl: 1.5rem;    /* 24px */
+
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+
+  --shadow-sm: 0 1px 2px 0 rgba(15, 23, 42, 0.05);
+  --shadow-drawer: -4px 0 24px rgba(15, 23, 42, 0.08);
+  --transition-fast: 150ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+:root[data-theme='dark'] {
+  /* =========================================================================
+     DARK THEME OVERRIDES (Figma Material Surface Elevation + Sunset Orange)
+     Reference Scale: #121212, #1E1E1E, #232323, #252525, #272727,
+                      #2C2C2C, #2E2E2E, #333333, #363636, #383838
+     ========================================================================= */
+  --surface-page: #121212;
+  --surface-card: #1e1e1e;
+  --surface-elevated: #333333;
+  --surface-subtle: #232323;
+  --surface-hover: #252525;
+  --surface-selected: rgba(249, 115, 22, 0.14);
+  --surface-overlay: rgba(0, 0, 0, 0.65);
+
+  --text-primary: #f5f5f5;
+  --text-secondary: #d4d4d4;
+  --text-muted: #a3a3a3;
+  --text-inverse: #ffffff;
+  --text-brand: #fb923c;
+
+  --border-subtle: #2e2e2e;
+  --border-strong: #383838;
+  --border-focus: #fb923c;
+
+  --action-primary-bg: #f97316;
+  --action-primary-hover: #fb923c;
+  --action-primary-text: #ffffff;
+
+  --action-secondary-bg: #272727;
+  --action-secondary-hover: #2c2c2c;
+  --action-secondary-text: #f5f5f5;
+
+  --status-success-fg: #4ade80;
+  --status-warning-fg: #fbbf24;
+  --status-danger-fg: #f87171;
+  --status-info-fg: #38bdf8;
+  --status-neutral-fg: #a3a3a3;
+
+  --shadow-sm: 0 4px 4px 0 rgba(0, 0, 0, 0.25);
+  --shadow-drawer: -4px 0 24px rgba(0, 0, 0, 0.45);
+}

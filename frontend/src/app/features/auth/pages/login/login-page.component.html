@@ -1,0 +1,273 @@
+<div class="auth-slider-container" id="container" [class.right-panel-active]="isSignUpMode()">
+  <div class="form-container sign-up-container">
+    <form class="auth-panel-form" [formGroup]="registerForm" (ngSubmit)="onRegisterSubmit()" novalidate>
+      <h1 class="panel-title">Create Account</h1>
+
+      <div class="social-container" aria-label="ตัวเลือกสมัครสมาชิกผ่านบัญชีภายนอก">
+        <button
+          type="button"
+          class="social-btn focus-ring"
+          aria-label="Facebook"
+          (click)="onSocialNotice('Facebook')"
+        >
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true">
+            <path d="M13.5 22v-8h2.7l.4-3h-3.1V9.1c0-.9.3-1.5 1.6-1.5h1.7V4.9c-.3 0-1.3-.1-2.5-.1-2.4 0-4.1 1.5-4.1 4.2V11H7.5v3h2.7v8h3.3z" />
+          </svg>
+        </button>
+        <button
+          type="button"
+          class="social-btn focus-ring"
+          aria-label="Google"
+          (click)="onSocialNotice('Google')"
+        >
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true">
+            <path d="M21.8 12.2c0-.7-.1-1.4-.2-2H12v3.8h5.5c-.2 1.2-.9 2.3-2 3v2.5h3.2c1.9-1.7 3.1-4.3 3.1-7.3zM12 22c2.7 0 5-.9 6.7-2.5l-3.2-2.5c-.9.6-2.1 1-3.5 1-2.7 0-5-1.8-5.8-4.3H2.9v2.6C4.6 19.7 8 22 12 22zM6.2 13.7c-.2-.6-.3-1.1-.3-1.7s.1-1.2.3-1.7V7.7H2.9C2.3 9 2 10.5 2 12s.3 3 .9 4.3l3.3-2.6zM12 6c1.5 0 2.8.5 3.9 1.5l2.9-2.9C17 3 14.7 2 12 2 8 2 4.6 4.3 2.9 7.7l3.3 2.6C7 7.8 9.3 6 12 6z" />
+          </svg>
+        </button>
+        <button
+          type="button"
+          class="social-btn focus-ring"
+          aria-label="LinkedIn"
+          (click)="onSocialNotice('LinkedIn')"
+        >
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true">
+            <path d="M6.9 8.5a2 2 0 1 1 0-4 2 2 0 0 1 0 4zM5.2 20h3.4V10H5.2v10zm5.5 0h3.4v-5.3c0-1.4.3-2.7 2-2.7 1.7 0 1.7 1.6 1.7 2.8V20h3.4v-5.9c0-2.9-.6-5.1-4-5.1-1.6 0-2.7.9-3.1 1.7h-.1V10h-3.3v10z" />
+          </svg>
+        </button>
+      </div>
+
+      <span class="panel-caption">or use your email for registration</span>
+
+      @if (isSignUpMode() && errorMessage()) {
+        <div class="error-banner panel-feedback" role="alert">
+          <div class="feedback-title">{{ errorTitle() }}</div>
+          <div class="feedback-detail">{{ errorMessage() }}</div>
+        </div>
+      }
+
+      @if (isSignUpMode() && infoMessage()) {
+        <div class="info-banner panel-feedback" role="status">
+          <div class="feedback-detail">{{ infoMessage() }}</div>
+        </div>
+      }
+
+      <div class="field-stack">
+        <input
+          id="register-name"
+          type="text"
+          class="form-control"
+          [class.form-control-error]="registerForm.controls.name.invalid && (registerForm.controls.name.touched || registerForm.controls.name.dirty)"
+          formControlName="name"
+          autocomplete="name"
+          placeholder="Name"
+          aria-label="Name"
+        />
+        @if (registerForm.controls.name.invalid && (registerForm.controls.name.touched || registerForm.controls.name.dirty)) {
+          <span class="field-error-text">กรุณากรอกชื่อ-นามสกุล</span>
+        }
+
+        <input
+          id="register-email"
+          type="email"
+          class="form-control"
+          [class.form-control-error]="registerForm.controls.email.invalid && (registerForm.controls.email.touched || registerForm.controls.email.dirty)"
+          formControlName="email"
+          autocomplete="email"
+          placeholder="Email"
+          aria-label="Email"
+        />
+        @if (registerForm.controls.email.invalid && (registerForm.controls.email.touched || registerForm.controls.email.dirty)) {
+          <span class="field-error-text">
+            @if (registerForm.controls.email.errors?.['serverError']) {
+              {{ registerForm.controls.email.errors?.['serverError'] }}
+            } @else {
+              กรุณากรอกอีเมลให้ถูกต้อง
+            }
+          </span>
+        }
+
+        <div class="password-input-row">
+          <input
+            id="register-password"
+            [type]="showRegisterPassword() ? 'text' : 'password'"
+            class="form-control"
+            [class.form-control-error]="registerForm.controls.password.invalid && (registerForm.controls.password.touched || registerForm.controls.password.dirty)"
+            formControlName="password"
+            autocomplete="new-password"
+            placeholder="Password (อย่างน้อย 8 ตัวอักษร)"
+            aria-label="Password"
+          />
+          <button
+            type="button"
+            class="btn-secondary focus-ring toggle-password-btn"
+            (click)="onToggleRegisterPassword()"
+          >
+            {{ showRegisterPassword() ? 'ซ่อน' : 'แสดง' }}
+          </button>
+        </div>
+        @if (registerForm.controls.password.invalid && (registerForm.controls.password.touched || registerForm.controls.password.dirty)) {
+          <span class="field-error-text">
+            @if (registerForm.controls.password.errors?.['serverError']) {
+              {{ registerForm.controls.password.errors?.['serverError'] }}
+            } @else {
+              รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร
+            }
+          </span>
+        }
+      </div>
+
+      <button type="submit" class="btn-primary focus-ring action-btn" [disabled]="isSubmitting()">
+        {{ isSubmitting() && isSignUpMode() ? 'Creating...' : 'Sign Up' }}
+      </button>
+
+      <button
+        type="button"
+        class="mobile-switch-link focus-ring"
+        (click)="switchMode(false)"
+      >
+        มีบัญชีอยู่แล้ว? Sign In
+      </button>
+    </form>
+  </div>
+
+  <div class="form-container sign-in-container">
+    <form class="auth-panel-form" [formGroup]="loginForm" (ngSubmit)="onSubmit()" novalidate>
+      <h1 class="panel-title">Sign in</h1>
+
+      <div class="social-container" aria-label="ตัวเลือกเข้าสู่ระบบผ่านบัญชีภายนอก">
+        <button
+          type="button"
+          class="social-btn focus-ring"
+          aria-label="Facebook"
+          (click)="onSocialNotice('Facebook')"
+        >
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true">
+            <path d="M13.5 22v-8h2.7l.4-3h-3.1V9.1c0-.9.3-1.5 1.6-1.5h1.7V4.9c-.3 0-1.3-.1-2.5-.1-2.4 0-4.1 1.5-4.1 4.2V11H7.5v3h2.7v8h3.3z" />
+          </svg>
+        </button>
+        <button
+          type="button"
+          class="social-btn focus-ring"
+          aria-label="Google"
+          (click)="onSocialNotice('Google')"
+        >
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true">
+            <path d="M21.8 12.2c0-.7-.1-1.4-.2-2H12v3.8h5.5c-.2 1.2-.9 2.3-2 3v2.5h3.2c1.9-1.7 3.1-4.3 3.1-7.3zM12 22c2.7 0 5-.9 6.7-2.5l-3.2-2.5c-.9.6-2.1 1-3.5 1-2.7 0-5-1.8-5.8-4.3H2.9v2.6C4.6 19.7 8 22 12 22zM6.2 13.7c-.2-.6-.3-1.1-.3-1.7s.1-1.2.3-1.7V7.7H2.9C2.3 9 2 10.5 2 12s.3 3 .9 4.3l3.3-2.6zM12 6c1.5 0 2.8.5 3.9 1.5l2.9-2.9C17 3 14.7 2 12 2 8 2 4.6 4.3 2.9 7.7l3.3 2.6C7 7.8 9.3 6 12 6z" />
+          </svg>
+        </button>
+        <button
+          type="button"
+          class="social-btn focus-ring"
+          aria-label="LinkedIn"
+          (click)="onSocialNotice('LinkedIn')"
+        >
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true">
+            <path d="M6.9 8.5a2 2 0 1 1 0-4 2 2 0 0 1 0 4zM5.2 20h3.4V10H5.2v10zm5.5 0h3.4v-5.3c0-1.4.3-2.7 2-2.7 1.7 0 1.7 1.6 1.7 2.8V20h3.4v-5.9c0-2.9-.6-5.1-4-5.1-1.6 0-2.7.9-3.1 1.7h-.1V10h-3.3v10z" />
+          </svg>
+        </button>
+      </div>
+
+      <span class="panel-caption">or use your account</span>
+
+      @if (!isSignUpMode() && errorMessage()) {
+        <div class="error-banner panel-feedback" role="alert">
+          <div class="feedback-title">{{ errorTitle() }}</div>
+          <div class="feedback-detail">{{ errorMessage() }}</div>
+        </div>
+      }
+
+      @if (!isSignUpMode() && infoMessage()) {
+        <div class="info-banner panel-feedback" role="status">
+          <div class="feedback-detail">{{ infoMessage() }}</div>
+        </div>
+      }
+
+      <div class="field-stack">
+        <input
+          id="login-email"
+          type="email"
+          class="form-control"
+          [class.form-control-error]="loginForm.controls.email.invalid && (loginForm.controls.email.touched || loginForm.controls.email.dirty)"
+          formControlName="email"
+          autocomplete="email"
+          placeholder="Email"
+          aria-label="Email"
+        />
+        @if (loginForm.controls.email.invalid && (loginForm.controls.email.touched || loginForm.controls.email.dirty)) {
+          <span class="field-error-text">
+            @if (loginForm.controls.email.errors?.['serverError']) {
+              {{ loginForm.controls.email.errors?.['serverError'] }}
+            } @else {
+              กรุณากรอกอีเมลให้ถูกต้อง
+            }
+          </span>
+        }
+
+        <div class="password-input-row">
+          <input
+            id="login-password"
+            [type]="showLoginPassword() ? 'text' : 'password'"
+            class="form-control"
+            [class.form-control-error]="loginForm.controls.password.invalid && (loginForm.controls.password.touched || loginForm.controls.password.dirty)"
+            formControlName="password"
+            autocomplete="current-password"
+            placeholder="Password"
+            aria-label="Password"
+          />
+          <button
+            type="button"
+            class="btn-secondary focus-ring toggle-password-btn"
+            (click)="onToggleLoginPassword()"
+          >
+            {{ showLoginPassword() ? 'ซ่อน' : 'แสดง' }}
+          </button>
+        </div>
+        @if (loginForm.controls.password.invalid && (loginForm.controls.password.touched || loginForm.controls.password.dirty)) {
+          <span class="field-error-text">
+            @if (loginForm.controls.password.errors?.['serverError']) {
+              {{ loginForm.controls.password.errors?.['serverError'] }}
+            } @else {
+              กรุณากรอกรหัสผ่าน
+            }
+          </span>
+        }
+      </div>
+
+      <button type="button" class="forgot-link focus-ring" (click)="onForgotPassword()">
+        Forgot your password?
+      </button>
+
+      <button type="submit" class="btn-primary focus-ring action-btn" [disabled]="isSubmitting()">
+        {{ isSubmitting() && !isSignUpMode() ? 'Signing in...' : 'Sign In' }}
+      </button>
+
+      <button
+        type="button"
+        class="mobile-switch-link focus-ring"
+        (click)="switchMode(true)"
+      >
+        ยังไม่มีบัญชี? Sign Up
+      </button>
+    </form>
+  </div>
+
+  <div class="overlay-container">
+    <div class="overlay">
+      <div class="overlay-panel overlay-left">
+        <h1 class="overlay-title">Welcome Back!</h1>
+        <p class="overlay-copy">To keep connected with us please login with your personal info</p>
+        <button type="button" class="ghost-btn focus-ring" id="signIn" (click)="switchMode(false)">
+          Sign In
+        </button>
+      </div>
+
+      <div class="overlay-panel overlay-right">
+        <h1 class="overlay-title">Hello, Friend!</h1>
+        <p class="overlay-copy">Enter your personal details and start journey with us</p>
+        <button type="button" class="ghost-btn focus-ring" id="signUp" (click)="switchMode(true)">
+          Sign Up
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

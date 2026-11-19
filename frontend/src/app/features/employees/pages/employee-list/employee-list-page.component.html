@@ -1,0 +1,102 @@
+<div class="page-stack">
+  <header class="page-header">
+    <div class="page-heading">
+      <h1 class="page-title">รายชื่อพนักงาน</h1>
+      <p class="page-subtitle">ค้นหา กรองตามสาขา แผนก และเข้าดูโปรไฟล์พนักงาน 360 องศา</p>
+    </div>
+
+    <div class="header-actions">
+      <a
+        *appHasPermission="'employee.create'"
+        routerLink="/employees/onboarding"
+        class="btn-primary focus-ring link-btn"
+      >
+        รับพนักงานใหม่
+      </a>
+    </div>
+  </header>
+
+  <app-state-container
+    [isLoading]="isLoading()"
+    [isEmpty]="employees().length === 0"
+    [errorMessage]="errorMessage()"
+    errorTitle="ไม่สามารถโหลดรายชื่อพนักงานได้"
+    emptyTitle="ไม่พบพนักงานตามเงื่อนไขที่เลือก"
+    emptyDescription="ลองล้างตัวกรองหรือเปลี่ยนคำค้นหา"
+    [skeletonRows]="6"
+    (retry)="loadInitial()"
+  >
+    <app-data-table
+      title="ทำเนียบพนักงาน"
+      [searchable]="true"
+      searchPlaceholder="ค้นหารหัสหรือชื่อพนักงาน..."
+      [searchQuery]="searchQuery()"
+      [columns]="columns"
+      [rows]="employees()"
+      [actions]="tableActions"
+      [clickableRows]="true"
+      [sortBy]="sortBy()"
+      [sortDirection]="sortDirection()"
+      [page]="page()"
+      [pageSize]="pageSize()"
+      [totalCount]="totalCount()"
+      [cellTemplates]="{
+        firstName: nameCell,
+        hireDate: hireDateCell,
+        employmentStatus: statusCell
+      }"
+      (searchChange)="onSearchChange($event)"
+      (sortChange)="onSortChange($event)"
+      (pageChange)="onPageChange($event)"
+      (pageSizeChange)="onPageSizeChange($event)"
+      (rowClick)="openDetail($event)"
+    >
+      <div slot-filters class="filter-controls">
+        <label class="filter-field">
+          <span class="filter-label">สาขา</span>
+          <select class="filter-input focus-ring" [value]="branchFilter()" (change)="onBranchChange($event)">
+            <option value="">ทุกสาขา</option>
+            @for (b of branches(); track b.id) {
+              <option [value]="b.id">{{ b.name }}</option>
+            }
+          </select>
+        </label>
+        <label class="filter-field">
+          <span class="filter-label">แผนก</span>
+          <select class="filter-input focus-ring" [value]="departmentFilter()" (change)="onDepartmentChange($event)">
+            <option value="">ทุกแผนก</option>
+            @for (d of departments(); track d.id) {
+              <option [value]="d.id">{{ d.name }}</option>
+            }
+          </select>
+        </label>
+        <label class="filter-field">
+          <span class="filter-label">สถานะ</span>
+          <select class="filter-input focus-ring" [value]="statusFilter()" (change)="onStatusChange($event)">
+            <option value="">ทุกสถานะ</option>
+            <option value="ACTIVE">ปฏิบัติงาน</option>
+            <option value="PROBATION">ทดลองงาน</option>
+            <option value="SUSPENDED">พักงาน</option>
+            <option value="RESIGNED">ลาออก</option>
+            <option value="TERMINATED">พ้นสภาพ</option>
+          </select>
+        </label>
+      </div>
+    </app-data-table>
+
+    <ng-template #nameCell let-row>
+      <span>{{ row.firstName }} {{ row.lastName }}</span>
+    </ng-template>
+
+    <ng-template #hireDateCell let-row>
+      <span class="tabular-nums">{{ formatDate(row.hireDate) }}</span>
+    </ng-template>
+
+    <ng-template #statusCell let-row>
+      <app-status-indicator
+        [label]="getStatusLabel(row.employmentStatus)"
+        [tone]="getStatusTone(row.employmentStatus)"
+      />
+    </ng-template>
+  </app-state-container>
+</div>

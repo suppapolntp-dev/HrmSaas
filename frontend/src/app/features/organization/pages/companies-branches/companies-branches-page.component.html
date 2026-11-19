@@ -1,0 +1,172 @@
+<div class="page-stack">
+  <header class="page-header">
+    <div class="page-heading">
+      <h1 class="page-title">บริษัทและสาขา</h1>
+      <p class="page-subtitle">จัดการนิติบุคคลในเครือ พิกัด GPS Geofencing และ IP Whitelist สำหรับการลงเวลา</p>
+    </div>
+
+    <div class="header-actions">
+      @if (activeTab() === 'COMPANIES') {
+        <button type="button" class="btn-primary focus-ring" (click)="openCompanyDrawer(null)">
+          เพิ่มบริษัทในเครือ
+        </button>
+      } @else {
+        <button type="button" class="btn-primary focus-ring" (click)="openBranchDrawer(null)">
+          เพิ่มสาขาใหม่
+        </button>
+      }
+    </div>
+  </header>
+
+  @if (feedbackSuccess(); as msg) {
+    <div class="feedback-banner is-success" role="status">
+      <span>{{ msg }}</span>
+      <button type="button" class="btn-secondary focus-ring" (click)="feedbackSuccess.set(null)">ปิด</button>
+    </div>
+  }
+
+  <nav class="tab-strip" aria-label="สลับข้อมูลบริษัทและสาขา">
+    <button
+      type="button"
+      class="tab-btn focus-ring"
+      [class.is-active]="activeTab() === 'COMPANIES'"
+      (click)="activeTab.set('COMPANIES'); page.set(1)"
+    >
+      บริษัทในเครือ ({{ companies().length }})
+    </button>
+    <button
+      type="button"
+      class="tab-btn focus-ring"
+      [class.is-active]="activeTab() === 'BRANCHES'"
+      (click)="activeTab.set('BRANCHES'); page.set(1)"
+    >
+      สาขาและพิกัด GPS ({{ branches().length }})
+    </button>
+  </nav>
+
+  <app-state-container
+    [isLoading]="isLoading()"
+    [isEmpty]="activeTab() === 'COMPANIES' ? companies().length === 0 : branches().length === 0"
+    [errorMessage]="errorMessage()"
+    errorTitle="ไม่สามารถโหลดข้อมูลบริษัทและสาขาได้"
+    emptyTitle="ยังไม่มีข้อมูล"
+    emptyDescription="เริ่มต้นด้วยการเพิ่มข้อมูลบริษัทหรือสาขาใหม่"
+    [skeletonRows]="5"
+    (retry)="loadData()"
+  >
+    @if (activeTab() === 'COMPANIES') {
+      <app-data-table
+        title="รายชื่อบริษัทในเครือ"
+        [searchable]="true"
+        searchPlaceholder="ค้นหารหัส ชื่อบริษัท หรือเลขผู้เสียภาษี..."
+        [searchQuery]="companySearch()"
+        [columns]="companyColumns"
+        [rows]="filteredCompanies()"
+        [actions]="companyActions"
+        [showSortDropdown]="false"
+        [page]="page()"
+        [pageSize]="pageSize()"
+        [totalCount]="filteredCompanies().length"
+        (searchChange)="companySearch.set($event); page.set(1)"
+        (pageChange)="page.set($event)"
+        (pageSizeChange)="pageSize.set($event); page.set(1)"
+      />
+    } @else {
+      <app-data-table
+        title="สาขาและขอบเขตการลงเวลา"
+        [searchable]="true"
+        searchPlaceholder="ค้นหารหัสหรือชื่อสาขา..."
+        [searchQuery]="branchSearch()"
+        [columns]="branchColumns"
+        [rows]="filteredBranches()"
+        [actions]="branchActions"
+        [showSortDropdown]="false"
+        [page]="page()"
+        [pageSize]="pageSize()"
+        [totalCount]="filteredBranches().length"
+        [cellTemplates]="{ allowedIps: ipsCell }"
+        (searchChange)="branchSearch.set($event); page.set(1)"
+        (pageChange)="page.set($event)"
+        (pageSizeChange)="pageSize.set($event); page.set(1)"
+      />
+
+      <ng-template #ipsCell let-row>
+        <span class="font-mono">{{ formatAllowedIps(row.allowedIps) }}</span>
+      </ng-template>
+    }
+  </app-state-container>
+
+  <app-slide-drawer
+    [isOpen]="isCompanyDrawerOpen()"
+    [title]="editingCompany() ? 'แก้ไขข้อมูลบริษัท' : 'เพิ่มบริษัทในเครือ'"
+    (closed)="isCompanyDrawerOpen.set(false)"
+  >
+    <form class="drawer-form" [formGroup]="companyForm" (ngSubmit)="submitCompany()">
+      @if (formError(); as errMsg) {
+        <div class="feedback-banner is-error" role="alert">{{ errMsg }}</div>
+      }
+      <app-form-field label="รหัสบริษัท" forId="comp-code" [required]="true" [control]="companyForm.controls.code">
+        <input id="comp-code" type="text" class="form-control focus-ring" formControlName="code" />
+      </app-form-field>
+      <app-form-field label="ชื่อนิติบุคคล" forId="comp-name" [required]="true" [control]="companyForm.controls.legalName">
+        <input id="comp-name" type="text" class="form-control focus-ring" formControlName="legalName" />
+      </app-form-field>
+      <div class="form-grid-2">
+        <app-form-field label="เลขประจำตัวผู้เสียภาษี" forId="comp-tax" [required]="true" [control]="companyForm.controls.taxId">
+          <input id="comp-tax" type="text" class="form-control focus-ring" formControlName="taxId" />
+        </app-form-field>
+        <app-form-field label="รหัสประกันสังคมนายจ้าง" forId="comp-sso" [required]="true" [control]="companyForm.controls.ssoEmployerCode">
+          <input id="comp-sso" type="text" class="form-control focus-ring" formControlName="ssoEmployerCode" />
+        </app-form-field>
+      </div>
+      <app-form-field label="สกุลเงินหลัก" forId="comp-cur" [required]="true" [control]="companyForm.controls.baseCurrency">
+        <input id="comp-cur" type="text" class="form-control focus-ring" formControlName="baseCurrency" />
+      </app-form-field>
+      <div class="drawer-actions">
+        <button type="button" class="btn-secondary focus-ring" (click)="isCompanyDrawerOpen.set(false)">ยกเลิก</button>
+        <button type="submit" class="btn-primary focus-ring" [disabled]="isSubmitting()">บันทึกข้อมูล</button>
+      </div>
+    </form>
+  </app-slide-drawer>
+
+  <app-slide-drawer
+    [isOpen]="isBranchDrawerOpen()"
+    [title]="editingBranch() ? 'ตั้งค่า GPS และ IP สาขา' : 'เพิ่มสาขาใหม่'"
+    (closed)="isBranchDrawerOpen.set(false)"
+  >
+    <form class="drawer-form" [formGroup]="branchForm" (ngSubmit)="submitBranch()">
+      @if (formError(); as errMsg) {
+        <div class="feedback-banner is-error" role="alert">{{ errMsg }}</div>
+      }
+      <div class="form-grid-2">
+        <app-form-field label="รหัสสาขา" forId="br-code" [required]="true" [control]="branchForm.controls.code">
+          <input id="br-code" type="text" class="form-control focus-ring" formControlName="code" />
+        </app-form-field>
+        <app-form-field label="Timezone" forId="br-tz" [required]="true" [control]="branchForm.controls.timezone">
+          <input id="br-tz" type="text" class="form-control focus-ring" formControlName="timezone" />
+        </app-form-field>
+      </div>
+      <app-form-field label="ชื่อสาขา" forId="br-name" [required]="true" [control]="branchForm.controls.name">
+        <input id="br-name" type="text" class="form-control focus-ring" formControlName="name" />
+      </app-form-field>
+      <div class="form-grid-2">
+        <app-form-field label="Latitude" forId="br-lat" [required]="true" [control]="branchForm.controls.latitude">
+          <input id="br-lat" type="number" step="0.000001" class="form-control focus-ring" formControlName="latitude" />
+        </app-form-field>
+        <app-form-field label="Longitude" forId="br-lng" [required]="true" [control]="branchForm.controls.longitude">
+          <input id="br-lng" type="number" step="0.000001" class="form-control focus-ring" formControlName="longitude" />
+        </app-form-field>
+      </div>
+      <app-form-field label="รัศมี Geofence (เมตร)" forId="br-rad" [required]="true" [control]="branchForm.controls.geofenceRadiusMeters">
+        <input id="br-rad" type="number" class="form-control focus-ring" formControlName="geofenceRadiusMeters" />
+      </app-form-field>
+      <app-form-field label="IP Whitelist" forId="br-ips" hint="คั่นหลาย IP ด้วยเครื่องหมายจุลภาค (,)" [control]="branchForm.controls.allowedIpsText">
+        <input id="br-ips" type="text" class="form-control focus-ring" formControlName="allowedIpsText" placeholder="203.0.113.10, 10.0.0.0/24" />
+      </app-form-field>
+      <div class="drawer-actions">
+        <button type="button" class="btn-secondary focus-ring" (click)="isBranchDrawerOpen.set(false)">ยกเลิก</button>
+        <button type="submit" class="btn-primary focus-ring" [disabled]="isSubmitting()">บันทึกข้อมูลสาขา</button>
+      </div>
+    </form>
+  </app-slide-drawer>
+</div>

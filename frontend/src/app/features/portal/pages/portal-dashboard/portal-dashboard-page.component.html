@@ -1,0 +1,249 @@
+<div class="dashboard-page">
+  <header class="page-header">
+    <div class="page-heading">
+      <h1 class="page-title">แดชบอร์ดพนักงาน</h1>
+      <p class="page-subtitle">
+        <span>{{ employeeDisplayName() }}</span>
+        @if (authSessionStore.user()?.employeeCode) {
+          <span class="employee-code font-mono tabular-nums">
+            ({{ authSessionStore.user()?.employeeCode }})
+          </span>
+        }
+        @if (activeBranchName().length > 0) {
+          <span>· {{ activeBranchName() }}</span>
+        }
+      </p>
+    </div>
+
+    <div class="quick-actions">
+      @if (canReadLeaves()) {
+        <a routerLink="/portal/leaves" class="btn-secondary focus-ring link-btn">ยื่นใบลา</a>
+      }
+      @if (canReadOvertime()) {
+        <a routerLink="/portal/overtime" class="btn-secondary focus-ring link-btn">ขอทำ OT</a>
+      }
+      @if (canReadPayslips()) {
+        <a routerLink="/portal/payslips" class="btn-secondary focus-ring link-btn">สลิปเงินเดือน</a>
+      }
+      <button
+        type="button"
+        class="btn-secondary focus-ring"
+        (click)="loadAllSections()"
+      >
+        รีเฟรชข้อมูล
+      </button>
+    </div>
+  </header>
+
+  @if (hasTeamOrOrgView()) {
+    <nav class="view-switcher" aria-label="สลับมุมมองแดชบอร์ด">
+      <button
+        type="button"
+        class="tab-btn focus-ring"
+        [class.is-active]="activeTab() === 'MY_WORKSPACE'"
+        (click)="setActiveTab('MY_WORKSPACE')"
+      >
+        งานของฉัน
+      </button>
+      <button
+        type="button"
+        class="tab-btn focus-ring"
+        [class.is-active]="activeTab() === 'TEAM_ORG'"
+        (click)="setActiveTab('TEAM_ORG')"
+      >
+        ภาพรวมทีมและองค์กร
+      </button>
+    </nav>
+  }
+
+  @if (!hasTeamOrOrgView() || activeTab() === 'MY_WORKSPACE') {
+    @if (mySummary()?.recentMissingPunchDate; as missingDate) {
+      <div class="alert-strip" role="status">
+        <p class="alert-strip-text tabular-nums">
+          พบรายการลืมลงเวลาเข้า-ออกงานเมื่อวันที่ {{ formatThaiDate(missingDate) }} กรุณายื่นคำขอแก้ไขเวลา
+        </p>
+        <a routerLink="/portal/attendance" class="btn-secondary focus-ring link-btn">
+          ไปหน้าเวลาทำงาน
+        </a>
+      </div>
+    }
+
+    <div class="top-grid">
+      @if (canReadAttendance()) {
+        <div class="top-grid-primary">
+          <app-state-container
+            [isLoading]="isAttendanceLoading()"
+            [isEmpty]="attendance() === null"
+            [errorMessage]="attendanceError()"
+            errorTitle="ไม่สามารถโหลดข้อมูลการลงเวลาได้"
+            emptyTitle="ไม่พบข้อมูลการลงเวลาวันนี้"
+            emptyDescription="ยังไม่มีข้อมูลพนักงานหรือกะงานสำหรับสาขาปัจจุบัน"
+            [skeletonRows]="4"
+            (retry)="loadTodayAttendance()"
+          >
+            @if (attendance(); as todayAttendance) {
+              <app-attendance-checkin-card
+                [attendance]="todayAttendance"
+                [currentTimeText]="currentTimeText()"
+                [isSubmitting]="isSubmittingPunch()"
+                [actionError]="punchError()"
+                (checkInClick)="onCheckIn()"
+                (checkOutClick)="onCheckOut()"
+              />
+            }
+          </app-state-container>
+        </div>
+      }
+
+      @if (canReadLeaves()) {
+        <div class="top-grid-secondary">
+          <app-state-container
+            [isLoading]="isLeaveLoading()"
+            [isEmpty]="leaveBalances().length === 0"
+            [errorMessage]="leaveError()"
+            errorTitle="ไม่สามารถโหลดโควตาวันลาได้"
+            emptyTitle="ยังไม่มีโควตาวันลาในปีนี้"
+            emptyDescription="ระบบยังไม่ได้คำนวณหรือกำหนดสิทธิ์วันลาสำหรับบัญชีพนักงานของคุณ"
+            [skeletonRows]="4"
+            (retry)="loadLeaveBalances()"
+          >
+            <a slot-empty-action routerLink="/portal/leaves" class="btn-secondary focus-ring link-btn">
+              ไปหน้าการลาของฉัน
+            </a>
+            <app-leave-balance-grid [balances]="leaveBalances()" />
+          </app-state-container>
+        </div>
+      }
+    </div>
+
+    <div class="mid-grid">
+      @if (canReadPayslips()) {
+        <div class="mid-grid-col">
+          <app-state-container
+            [isLoading]="isMySummaryLoading()"
+            [isEmpty]="mySummary()?.latestPayslip === null"
+            [errorMessage]="mySummaryError()"
+            errorTitle="ไม่สามารถโหลดสลิปเงินเดือนล่าสุดได้"
+            emptyTitle="ยังไม่มีสลิปเงินเดือน"
+            emptyDescription="เมื่อฝ่ายบัญชีปิดงวดเงินเดือนแล้ว สลิปงวดล่าสุดจะแสดงที่นี่"
+            [skeletonRows]="3"
+            (retry)="loadMySummary()"
+          >
+            @if (mySummary()?.latestPayslip; as latestPayslip) {
+              <app-latest-payslip-card [payslip]="latestPayslip" />
+            }
+          </app-state-container>
+        </div>
+      }
+
+      <div class="mid-grid-col">
+        <app-state-container
+          [isLoading]="isMySummaryLoading()"
+          [isEmpty]="(mySummary()?.recentRequests?.length ?? 0) === 0"
+          [errorMessage]="mySummaryError()"
+          errorTitle="ไม่สามารถโหลดคำขอล่าสุดของคุณได้"
+          emptyTitle="ยังไม่มีคำขอที่ยื่นไว้"
+          emptyDescription="ประวัติคำขอลา ขอทำ OT และขอแก้ไขเวลาล่าสุดจะแสดงที่นี่"
+          [skeletonRows]="3"
+          (retry)="loadMySummary()"
+        >
+          @if (mySummary(); as summary) {
+            <app-my-recent-requests-panel [requests]="summary.recentRequests" />
+          }
+        </app-state-container>
+      </div>
+    </div>
+
+    @if (canReadAttendance()) {
+      <section class="dashboard-section" aria-label="ส่วนตารางกะงาน 7 วันข้างหน้า">
+        <app-state-container
+          [isLoading]="isRosterLoading()"
+          [isEmpty]="upcomingRosters().length === 0"
+          [errorMessage]="rosterError()"
+          errorTitle="ไม่สามารถโหลดตารางกะงาน 7 วันข้างหน้าได้"
+          emptyTitle="ยังไม่มีตารางกะงานในช่วง 7 วันข้างหน้า"
+          emptyDescription="หัวหน้าทีมหรือฝ่ายบุคคลยังไม่ได้จัดตารางกะสำหรับช่วงเวลาดังกล่าว"
+          [skeletonRows]="5"
+          (retry)="loadUpcomingRosters()"
+        >
+          <app-upcoming-roster-table [rosters]="upcomingRosters()" />
+        </app-state-container>
+      </section>
+    }
+
+    @if (canApproveWorkflows()) {
+      <section class="dashboard-section" aria-label="ส่วนรายการคำขอรออนุมัติ">
+        <app-state-container
+          [isLoading]="isApprovalsLoading()"
+          [isEmpty]="pendingApprovals().length === 0"
+          [errorMessage]="approvalsError()"
+          errorTitle="ไม่สามารถโหลดรายการรออนุมัติได้"
+          emptyTitle="ไม่มีคำขอรออนุมัติในขณะนี้"
+          emptyDescription="คำขอลา ขอทำ OT และขอแก้ไขเวลาที่ส่งถึงคุณได้รับการพิจารณาครบถ้วนแล้ว"
+          [skeletonRows]="4"
+          (retry)="loadPendingApprovals()"
+        >
+          <a slot-empty-action routerLink="/workflows/inbox" class="btn-secondary focus-ring link-btn">
+            ดูประวัติในกล่องอนุมัติ
+          </a>
+          <app-pending-approvals-panel
+            [approvals]="pendingApprovals()"
+            [submittingRequestId]="submittingApprovalId()"
+            (approveClick)="onOpenApproveDialog($event)"
+            (rejectClick)="onOpenRejectDialog($event)"
+          />
+        </app-state-container>
+      </section>
+    }
+  } @else {
+    <app-state-container
+      [isLoading]="isTeamOrgLoading()"
+      [isEmpty]="isTeamOrgEmpty()"
+      [errorMessage]="teamOrgError()"
+      errorTitle="ไม่สามารถโหลดข้อมูลภาพรวมองค์กรได้"
+      emptyTitle="ยังไม่มีข้อมูลภาพรวมทีมและองค์กร"
+      emptyDescription="ยังไม่มีข้อมูลเวลาทำงาน พนักงาน หรือรอบเงินเดือนสำหรับบริษัทและสาขาปัจจุบัน"
+      [skeletonRows]="6"
+      (retry)="reloadTeamOrgSections()"
+    >
+      <app-workforce-intelligence-board
+        [teamPulse]="teamPulse()"
+        [hrOverview]="hrOverview()"
+        [payrollReadiness]="payrollReadiness()"
+        [pendingApprovals]="pendingApprovals()"
+      />
+    </app-state-container>
+  }
+</div>
+
+<app-confirm-dialog
+  [isOpen]="dialogTarget() !== null"
+  [title]="dialogTitle()"
+  [message]="dialogMessage()"
+  [confirmLabel]="dialogAction() === 'APPROVE' ? 'ยืนยันอนุมัติ' : 'ยืนยันไม่อนุมัติ'"
+  cancelLabel="ยกเลิก"
+  [tone]="dialogAction() === 'APPROVE' ? 'primary' : 'danger'"
+  [isSubmitting]="submittingApprovalId() !== null"
+  (confirmed)="onConfirmApprovalDecision()"
+  (cancelled)="onCloseDialog()"
+>
+  <app-form-field
+    label="หมายเหตุประกอบการพิจารณา (ไม่บังคับ)"
+    forId="dashboard-approval-comment"
+  >
+    <textarea
+      id="dashboard-approval-comment"
+      class="form-control comment-textarea"
+      rows="3"
+      placeholder="ระบุเหตุผลหรือข้อความถึงผู้ยื่นคำขอ..."
+      [ngModel]="dialogComment()"
+      (ngModelChange)="dialogComment.set($event)"
+    ></textarea>
+  </app-form-field>
+
+  @if (approvalActionError()) {
+    <div class="error-banner dialog-error" role="alert">
+      <p class="dialog-error-text">{{ approvalActionError() }}</p>
+    </div>
+  }
+</app-confirm-dialog>

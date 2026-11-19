@@ -1,0 +1,134 @@
+<div class="page-stack">
+  <header class="page-header">
+    <div class="page-heading">
+      <h1 class="page-title">ตั้งค่าสายอนุมัติ</h1>
+      <p class="page-subtitle">กำหนดลำดับขั้นการอนุมัติแบบ Multi-Step แยกตามประเภทคำขอและแผนก</p>
+    </div>
+    <div class="header-actions">
+      <button type="button" class="btn-primary focus-ring" (click)="openDrawer(null)">เพิ่มสายอนุมัติ</button>
+    </div>
+  </header>
+
+  @if (feedbackSuccess(); as msg) {
+    <div class="feedback-banner is-success" role="status">
+      <span>{{ msg }}</span>
+      <button type="button" class="btn-secondary focus-ring" (click)="feedbackSuccess.set(null)">ปิด</button>
+    </div>
+  }
+
+  <app-state-container
+    [isLoading]="isLoading()"
+    [isEmpty]="routes().length === 0"
+    [errorMessage]="errorMessage()"
+    errorTitle="ไม่สามารถโหลดสายอนุมัติได้"
+    emptyTitle="ยังไม่มีสายอนุมัติที่ตั้งค่าไว้"
+    emptyDescription="กดปุ่ม เพิ่มสายอนุมัติ เพื่อกำหนดลำดับผู้อนุมัติสำหรับคำขอลา OT หรือแก้เวลา"
+    [skeletonRows]="5"
+    (retry)="loadData()"
+  >
+    <app-data-table
+      title="รายการสายอนุมัติ (Workflow Definitions)"
+      [searchable]="true"
+      searchPlaceholder="ค้นหาชื่อสายอนุมัติหรือแผนก..."
+      [searchQuery]="searchQuery()"
+      [columns]="columns"
+      [rows]="filteredRoutes()"
+      [actions]="tableActions"
+      [showSortDropdown]="false"
+      [page]="page()"
+      [pageSize]="pageSize()"
+      [totalCount]="filteredRoutes().length"
+      [cellTemplates]="{
+        requestType: reqTypeCell,
+        departmentName: deptCell,
+        steps: stepsCell,
+        isActive: activeCell
+      }"
+      (searchChange)="searchQuery.set($event); page.set(1)"
+      (pageChange)="page.set($event)"
+      (pageSizeChange)="pageSize.set($event); page.set(1)"
+    />
+
+    <ng-template #reqTypeCell let-row><span>{{ formatRequestType(row.requestType) }}</span></ng-template>
+    <ng-template #deptCell let-row><span>{{ row.departmentName || 'ทุกแผนก (ค่ากลาง)' }}</span></ng-template>
+    <ng-template #stepsCell let-row><span>{{ formatStepsSummary(row) }}</span></ng-template>
+    <ng-template #activeCell let-row>
+      <app-status-indicator [label]="row.isActive ? 'ใช้งานอยู่' : 'ปิดใช้งาน'" [tone]="row.isActive ? 'success' : 'neutral'" />
+    </ng-template>
+  </app-state-container>
+
+  <app-slide-drawer
+    [isOpen]="isDrawerOpen()"
+    [title]="editingRoute() ? 'แก้ไขสายอนุมัติ' : 'สร้างสายอนุมัติใหม่'"
+    size="lg"
+    (closed)="isDrawerOpen.set(false)"
+  >
+    <form class="drawer-form" [formGroup]="routeForm" (ngSubmit)="submitRoute()">
+      @if (formError(); as errMsg) {
+        <div class="feedback-banner is-error" role="alert">{{ errMsg }}</div>
+      }
+      <app-form-field label="ชื่อสายอนุมัติ" forId="wf-name" [required]="true" [control]="routeForm.controls.name">
+        <input id="wf-name" type="text" class="form-control focus-ring" formControlName="name" />
+      </app-form-field>
+      <div class="form-grid-2">
+        <app-form-field label="ประเภทคำขอ" forId="wf-type" [required]="true" [control]="routeForm.controls.requestType">
+          <select id="wf-type" class="form-control focus-ring" formControlName="requestType">
+            <option value="LEAVE">คำขอลา (LEAVE)</option>
+            <option value="OVERTIME">คำขอทำ OT (OVERTIME)</option>
+            <option value="TIME_ADJUSTMENT">คำขอแก้ไขเวลา (TIME_ADJUSTMENT)</option>
+          </select>
+        </app-form-field>
+        <app-form-field label="เฉพาะแผนก (ไม่บังคับ)" forId="wf-dept" [control]="routeForm.controls.departmentId">
+          <select id="wf-dept" class="form-control focus-ring" formControlName="departmentId">
+            <option value="">ทุกแผนก (ค่ากลางบริษัท)</option>
+            @for (d of departments(); track d.id) { <option [value]="d.id">{{ d.name }}</option> }
+          </select>
+        </app-form-field>
+      </div>
+      <label class="checkbox-row">
+        <input type="checkbox" formControlName="isActive" />
+        <span>เปิดใช้งานสายอนุมัตินี้</span>
+      </label>
+
+      <div class="steps-header">
+        <strong class="section-title">ลำดับขั้นตอนการอนุมัติ</strong>
+        <button type="button" class="btn-secondary focus-ring" (click)="addStep()">+ เพิ่มขั้น</button>
+      </div>
+
+      @for (step of draftSteps(); track $index) {
+        <div class="step-card">
+          <div class="step-card-head">
+            <strong>ขั้นที่ {{ step.stepOrder }}</strong>
+            @if (draftSteps().length > 1) {
+              <button type="button" class="btn-secondary focus-ring" (click)="removeStep($index)">ลบขั้น</button>
+            }
+          </div>
+          <select class="form-control focus-ring" [value]="step.approverStrategy" (change)="updateStepStrategy($index, $event)">
+            <option value="DIRECT_MANAGER">หัวหน้างานสายตรง (DIRECT_MANAGER)</option>
+            <option value="SECONDARY_MANAGER">ผู้บังคับบัญชาระดับรอง (SECONDARY_MANAGER)</option>
+            <option value="HR_ROLE">ฝ่ายบุคคล (HR_ROLE)</option>
+            <option value="SPECIFIC_ROLE">ระบุตามบทบาท (SPECIFIC_ROLE)</option>
+            <option value="SPECIFIC_EMPLOYEE">ระบุพนักงานเฉพาะคน (SPECIFIC_EMPLOYEE)</option>
+          </select>
+          @if (step.approverStrategy === 'SPECIFIC_ROLE') {
+            <select class="form-control focus-ring" [value]="step.specificRoleId ?? ''" (change)="updateStepRole($index, $event)">
+              <option value="">เลือกบทบาท...</option>
+              @for (r of roles(); track r.id) { <option [value]="r.id">{{ r.name }}</option> }
+            </select>
+          }
+          @if (step.approverStrategy === 'SPECIFIC_EMPLOYEE') {
+            <select class="form-control focus-ring" [value]="step.specificEmployeeId ?? ''" (change)="updateStepEmployee($index, $event)">
+              <option value="">เลือกพนักงานผู้อนุมัติ...</option>
+              @for (e of employees(); track e.id) { <option [value]="e.id">{{ e.employeeCode }} · {{ e.firstName }} {{ e.lastName }}</option> }
+            </select>
+          }
+        </div>
+      }
+
+      <div class="drawer-actions">
+        <button type="button" class="btn-secondary focus-ring" (click)="isDrawerOpen.set(false)">ยกเลิก</button>
+        <button type="submit" class="btn-primary focus-ring" [disabled]="isSubmitting()">บันทึกสายอนุมัติ</button>
+      </div>
+    </form>
+  </app-slide-drawer>
+</div>

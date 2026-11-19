@@ -1,0 +1,123 @@
+@import '../../../../../styles/_shared-layout.css';
+
+.dashboard-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.employee-code {
+  margin-left: var(--space-1);
+}
+
+.quick-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.view-switcher {
+  display: inline-flex;
+  align-self: flex-start;
+  gap: var(--space-1);
+  padding: var(--space-1);
+  background-color: var(--surface-subtle);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+}
+
+.tab-btn {
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-medium);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.tab-btn:hover {
+  color: var(--text-primary);
+}
+
+.tab-btn.is-active {
+  background-color: var(--surface-card);
+  color: var(--text-brand);
+  font-weight: var(--font-weight-semibold);
+  box-shadow: var(--shadow-sm);
+}
+
+.alert-strip {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  padding: var(--space-3) var(--space-4);
+  background-color: var(--surface-card);
+  border: 1px solid var(--border-subtle);
+  border-left: 3px solid var(--status-warning-fg);
+  border-radius: var(--radius-md);
+}
+
+.alert-strip-text {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+}
+
+.top-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+  gap: var(--space-4);
+  align-items: stretch;
+}
+
+.top-grid-primary,
+.top-grid-secondary {
+  min-width: 0;
+}
+
+.mid-grid,
+.org-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+  align-items: stretch;
+}
+
+.mid-grid-col,
+.org-grid-col {
+  min-width: 0;
+}
+
+.dashboard-section {
+  min-width: 0;
+}
+
+.comment-textarea {
+  min-height: 76px;
+  resize: vertical;
+}
+
+.dialog-error {
+  margin-top: var(--space-3);
+}
+
+.dialog-error-text {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--text-primary);
+}
+
+@media (max-width: 1024px) {
+  .top-grid,
+  .mid-grid,
+  .org-grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,0 +1,55 @@
+@if (isLoading()) {
+  <div class="surface-card skeleton-container" aria-busy="true" aria-label="กำลังโหลดข้อมูล">
+    <div class="skeleton-header">
+      <div class="skeleton-block skeleton-col-sm"></div>
+      <div class="skeleton-block skeleton-col-lg"></div>
+      <div class="skeleton-block skeleton-col-md"></div>
+      <div class="skeleton-block skeleton-col-sm"></div>
+    </div>
+    @for (rowIndex of skeletonRowIndexes(); track rowIndex) {
+      <div class="skeleton-row">
+        <div class="skeleton-block skeleton-col-sm"></div>
+        <div class="skeleton-block skeleton-col-lg"></div>
+        <div class="skeleton-block skeleton-col-md"></div>
+        <div class="skeleton-block skeleton-col-sm"></div>
+      </div>
+    }
+  </div>
+} @else if (errorMessage()) {
+  <div class="error-banner state-error" role="alert">
+    <div class="error-text-group">
+      <h2 class="error-title">{{ errorTitle() }}</h2>
+      <p class="error-detail">{{ errorMessage() }}</p>
+    </div>
+    <button
+      type="button"
+      class="btn-primary focus-ring"
+      (click)="onRetry()"
+    >
+      ลองใหม่อีกครั้ง (Retry)
+    </button>
+  </div>
+} @else if (isEmpty()) {
+  <div class="surface-card empty-state">
+    <svg
+      class="empty-icon"
+      width="32"
+      height="32"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1.5"
+      aria-hidden="true"
+    >
+      <path d="M3 7.5A2.5 2.5 0 0 1 5.5 5h13A2.5 2.5 0 0 1 21 7.5v9A2.5 2.5 0 0 1 18.5 19h-13A2.5 2.5 0 0 1 3 16.5v-9Z" />
+      <path d="M3 10h18" />
+    </svg>
+    <h2 class="empty-title">{{ emptyTitle() }}</h2>
+    <p class="empty-description">{{ emptyDescription() }}</p>
+    <div class="empty-actions">
+      <ng-content select="[slot-empty-action]" />
+    </div>
+  </div>
+} @else {
+  <ng-content />
+}

@@ -1,0 +1,34 @@
+# Local AI planning specs (ignored from git)
+plan/
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+*.local
+appsettings.*.local.json
+
+# .NET / C#
+bin/
+obj/
+*.user
+*.suo
+*.cache
+.vs/
+TestResults/
+
+# Angular / Node
+node_modules/
+dist/
+.angular/
+tmp/
+out-tsc/
+coverage/
+*.log
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json

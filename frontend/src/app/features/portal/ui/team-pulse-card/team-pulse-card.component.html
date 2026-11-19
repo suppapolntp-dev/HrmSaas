@@ -1,0 +1,108 @@
+<section class="surface-card pulse-card" aria-label="สถานะการมาทำงานของทีมวันนี้">
+  <header class="card-header">
+    <div class="header-left">
+      <div class="ring-wrap" aria-hidden="true">
+        <svg viewBox="0 0 64 64" class="ring-svg">
+          <circle cx="32" cy="32" r="26" class="ring-track" />
+          <circle
+            cx="32"
+            cy="32"
+            r="26"
+            class="ring-fill"
+            [attr.stroke-dasharray]="ringCircumference"
+            [attr.stroke-dashoffset]="ringStrokeDashoffset()"
+          />
+        </svg>
+        <span class="ring-value tabular-nums">{{ attendanceRatePercent() }}%</span>
+      </div>
+
+      <div class="header-text">
+        <h2 class="section-title">ภาพรวมเวลาทำงานทีมวันนี้</h2>
+        <p class="section-subtitle tabular-nums">
+          {{ formatWorkDate(pulse().workDate) }} · พนักงานที่มีกะ {{ pulse().totalScheduledCount }} คน
+        </p>
+      </div>
+    </div>
+
+    <a routerLink="/attendance/daily-logs" class="btn-secondary focus-ring link-btn">
+      ดูบันทึกเวลาทั้งหมด
+    </a>
+  </header>
+
+  <div class="kpi-strip">
+    <div class="kpi-cell">
+      <app-status-indicator label="มาปกติ" tone="success" />
+      <span class="kpi-value tabular-nums">{{ pulse().presentCount }}</span>
+    </div>
+    <div class="kpi-cell">
+      <app-status-indicator label="มาสาย" tone="warning" />
+      <span class="kpi-value tabular-nums">{{ pulse().lateCount }}</span>
+    </div>
+    <div class="kpi-cell">
+      <app-status-indicator label="ลืมลงเวลา" tone="warning" />
+      <span class="kpi-value tabular-nums">{{ pulse().missingPunchCount }}</span>
+    </div>
+    <div class="kpi-cell">
+      <app-status-indicator label="ขาดงาน" tone="danger" />
+      <span class="kpi-value tabular-nums">{{ pulse().absentCount }}</span>
+    </div>
+    <div class="kpi-cell">
+      <app-status-indicator label="ลางาน" tone="info" />
+      <span class="kpi-value tabular-nums">{{ pulse().onLeaveCount }}</span>
+    </div>
+  </div>
+
+  <div class="pulse-columns">
+    <div class="pulse-column">
+      <h3 class="sub-heading">เคสผิดปกติที่ต้องติดตาม ({{ pulse().exceptions.length }})</h3>
+      @if (pulse().exceptions.length === 0) {
+        <p class="empty-inline">ไม่พบเคสมาสาย ลืมลงเวลา หรือขาดงานในวันนี้</p>
+      } @else {
+        <ul class="detail-list">
+          @for (item of pulse().exceptions; track item.employeeId) {
+            <li
+              class="detail-item"
+              [class.is-danger]="item.attendanceStatus === 'ABSENT'"
+              [class.is-warning]="item.attendanceStatus !== 'ABSENT'"
+            >
+              <div class="detail-main">
+                <span class="emp-name">{{ item.employeeName }}</span>
+                <span class="emp-code font-mono tabular-nums">{{ item.employeeCode }}</span>
+              </div>
+              <div class="detail-right">
+                <app-status-indicator
+                  [label]="getStatusLabel(item.attendanceStatus)"
+                  [tone]="getStatusTone(item.attendanceStatus)"
+                />
+                @if (item.lateMinutes > 0) {
+                  <span class="detail-meta tabular-nums">สาย {{ item.lateMinutes }} นาที</span>
+                } @else if (item.actualInUtc) {
+                  <span class="detail-meta tabular-nums">เข้า {{ formatCheckInTime(item.actualInUtc) }}</span>
+                }
+              </div>
+            </li>
+          }
+        </ul>
+      }
+    </div>
+
+    <div class="pulse-column">
+      <h3 class="sub-heading">ผู้ที่ลางานวันนี้ ({{ pulse().whoIsOut.length }})</h3>
+      @if (pulse().whoIsOut.length === 0) {
+        <p class="empty-inline">ไม่มีพนักงานลางานในวันนี้</p>
+      } @else {
+        <ul class="detail-list">
+          @for (person of pulse().whoIsOut; track person.employeeId) {
+            <li class="detail-item is-info">
+              <div class="detail-main">
+                <span class="emp-name">{{ person.employeeName }}</span>
+                <span class="emp-code font-mono tabular-nums">{{ person.employeeCode }}</span>
+              </div>
+              <span class="detail-meta">{{ person.departmentName }}</span>
+            </li>
+          }
+        </ul>
+      }
+    </div>
+  </div>
+</section>

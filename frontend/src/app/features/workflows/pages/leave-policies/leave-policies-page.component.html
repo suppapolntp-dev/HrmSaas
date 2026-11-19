@@ -1,0 +1,110 @@
+<div class="page-stack">
+  <header class="page-header">
+    <div class="page-heading">
+      <h1 class="page-title">นโยบายวันลา</h1>
+      <p class="page-subtitle">ตั้งค่าประเภทวันลา เงื่อนไขโควตาตามอายุงาน ระดับพนักงาน และกติกายกยอดข้ามปี</p>
+    </div>
+    <div class="header-actions">
+      <button type="button" class="btn-primary focus-ring" (click)="openDrawer(null)">เพิ่มนโยบายวันลา</button>
+    </div>
+  </header>
+
+  @if (feedbackSuccess(); as msg) {
+    <div class="feedback-banner is-success" role="status">
+      <span>{{ msg }}</span>
+      <button type="button" class="btn-secondary focus-ring" (click)="feedbackSuccess.set(null)">ปิด</button>
+    </div>
+  }
+
+  <app-state-container
+    [isLoading]="isLoading()"
+    [isEmpty]="policies().length === 0"
+    [errorMessage]="errorMessage()"
+    errorTitle="ไม่สามารถโหลดนโยบายวันลาได้"
+    emptyTitle="ยังไม่มีนโยบายวันลา"
+    emptyDescription="กดปุ่ม เพิ่มนโยบายวันลา เพื่อสร้างประเภทวันลาและเกณฑ์โควตา"
+    [skeletonRows]="5"
+    (retry)="loadData()"
+  >
+    <app-data-table
+      title="ตารางนโยบายสิทธิ์วันลา"
+      [searchable]="true"
+      searchPlaceholder="ค้นหารหัสหรือชื่อประเภทวันลา..."
+      [searchQuery]="searchQuery()"
+      [columns]="columns"
+      [rows]="filteredPolicies()"
+      [actions]="tableActions"
+      [showSortDropdown]="false"
+      [page]="page()"
+      [pageSize]="pageSize()"
+      [totalCount]="filteredPolicies().length"
+      [cellTemplates]="{ minTenureMonths: tenureCell, isPaid: paidCell }"
+      (searchChange)="searchQuery.set($event); page.set(1)"
+      (pageChange)="page.set($event)"
+      (pageSizeChange)="pageSize.set($event); page.set(1)"
+    />
+
+    <ng-template #tenureCell let-row><span class="tabular-nums">{{ formatTenureRange(row) }}</span></ng-template>
+    <ng-template #paidCell let-row>
+      <app-status-indicator [label]="row.isPaid ? 'จ่ายค่าจ้าง' : 'ไม่รับค่าจ้าง'" [tone]="row.isPaid ? 'success' : 'neutral'" />
+    </ng-template>
+  </app-state-container>
+
+  <app-slide-drawer
+    [isOpen]="isDrawerOpen()"
+    [title]="editingPolicy() ? 'แก้ไขนโยบายวันลา' : 'สร้างนโยบายวันลาใหม่'"
+    (closed)="isDrawerOpen.set(false)"
+  >
+    <form class="drawer-form" [formGroup]="policyForm" (ngSubmit)="submitPolicy()">
+      @if (formError(); as errMsg) {
+        <div class="feedback-banner is-error" role="alert">{{ errMsg }}</div>
+      }
+      <div class="form-grid-2">
+        <app-form-field label="รหัสประเภทวันลา" forId="lp-code" [required]="true" [control]="policyForm.controls.leaveTypeCode">
+          <input id="lp-code" type="text" class="form-control focus-ring" formControlName="leaveTypeCode" placeholder="ANNUAL" />
+        </app-form-field>
+        <app-form-field label="ชื่อประเภทวันลา" forId="lp-name" [required]="true" [control]="policyForm.controls.leaveTypeName">
+          <input id="lp-name" type="text" class="form-control focus-ring" formControlName="leaveTypeName" placeholder="ลาพักร้อน" />
+        </app-form-field>
+      </div>
+      <app-form-field label="ระดับพนักงาน (เว้นว่าง = ใช้ทุกระดับ)" forId="lp-grade" [control]="policyForm.controls.jobGradeId">
+        <select id="lp-grade" class="form-control focus-ring" formControlName="jobGradeId">
+          <option value="">ทุกระดับพนักงาน</option>
+          @for (g of jobGrades(); track g.id) { <option [value]="g.id">{{ g.name }}</option> }
+        </select>
+      </app-form-field>
+      <div class="form-grid-2">
+        <app-form-field label="อายุงานขั้นต่ำ (เดือน)" forId="lp-min" [required]="true" [control]="policyForm.controls.minTenureMonths">
+          <input id="lp-min" type="number" class="form-control focus-ring" formControlName="minTenureMonths" />
+        </app-form-field>
+        <app-form-field label="อายุงานสูงสุด (เดือน)" forId="lp-max" [control]="policyForm.controls.maxTenureMonths">
+          <input id="lp-max" type="number" class="form-control focus-ring" formControlName="maxTenureMonths" placeholder="ไม่จำกัด" />
+        </app-form-field>
+      </div>
+      <div class="form-grid-2">
+        <app-form-field label="โควตาต่อปี (วัน)" forId="lp-quota" [required]="true" [control]="policyForm.controls.annualQuotaDays">
+          <input id="lp-quota" type="number" step="0.5" class="form-control focus-ring" formControlName="annualQuotaDays" />
+        </app-form-field>
+        <app-form-field label="ยกยอดข้ามปีสูงสุด (วัน)" forId="lp-carry" [required]="true" [control]="policyForm.controls.maxCarryOverDays">
+          <input id="lp-carry" type="number" step="0.5" class="form-control focus-ring" formControlName="maxCarryOverDays" />
+        </app-form-field>
+      </div>
+      <app-form-field label="กติกา Prorate พนักงานใหม่" forId="lp-pro" [required]="true" [control]="policyForm.controls.prorateRule">
+        <select id="lp-pro" class="form-control focus-ring" formControlName="prorateRule">
+          <option value="NONE">NONE (ได้เต็มสิทธิ์ทันที)</option>
+          <option value="MONTHLY_PRORATE">MONTHLY_PRORATE (เฉลี่ยตามเดือนทำงาน)</option>
+          <option value="AFTER_PROBATION">AFTER_PROBATION (ได้หลังผ่านทดลองงาน)</option>
+        </select>
+      </app-form-field>
+      @if (!editingPolicy()) {
+        <label class="checkbox-row"><input type="checkbox" formControlName="isPaid" /><span>ได้รับค่าจ้างตามปกติ</span></label>
+        <label class="checkbox-row"><input type="checkbox" formControlName="allowHalfDay" /><span>อนุญาตให้ลาครึ่งวันได้</span></label>
+        <label class="checkbox-row"><input type="checkbox" formControlName="requiresAttachment" /><span>บังคับแนบเอกสารประกอบ</span></label>
+      }
+      <div class="drawer-actions">
+        <button type="button" class="btn-secondary focus-ring" (click)="isDrawerOpen.set(false)">ยกเลิก</button>
+        <button type="submit" class="btn-primary focus-ring" [disabled]="isSubmitting()">บันทึกนโยบาย</button>
+      </div>
+    </form>
+  </app-slide-drawer>
+</div>

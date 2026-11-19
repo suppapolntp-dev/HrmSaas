@@ -1,0 +1,18 @@
+<div class="field-wrapper">
+  <label class="field-label" [attr.for]="forId().length > 0 ? forId() : null">
+    <span>{{ label() }}</span>
+    @if (required()) {
+      <span class="field-required" aria-hidden="true">*</span>
+    }
+  </label>
+
+  <div class="field-control-slot">
+    <ng-content />
+  </div>
+
+  @if (displayedError()) {
+    <p class="field-error" role="alert">{{ displayedError() }}</p>
+  } @else if (hint()) {
+    <p class="field-hint">{{ hint() }}</p>
+  }
+</div>

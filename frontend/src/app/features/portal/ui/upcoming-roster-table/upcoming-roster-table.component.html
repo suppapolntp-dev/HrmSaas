@@ -1,0 +1,45 @@
+<section class="surface-card roster-card" aria-label="ตารางกะงาน 7 วันข้างหน้า">
+  <header class="card-header">
+    <div class="header-text">
+      <h2 class="section-title">ตารางกะงาน 7 วันข้างหน้า</h2>
+      <p class="section-subtitle">ตารางเวลาทำงานที่ได้รับมอบหมายตามสาขาปัจจุบัน</p>
+    </div>
+  </header>
+
+  <div class="table-scroll">
+    <table class="roster-table">
+      <thead>
+        <tr>
+          <th scope="col" class="col-left">วันที่</th>
+          <th scope="col" class="col-left">ประเภทวัน</th>
+          <th scope="col" class="col-left">กะงาน</th>
+          <th scope="col" class="col-right">เวลาทำงาน</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of rosters(); track row.id) {
+          <tr class="roster-row">
+            <td class="col-left tabular-nums">{{ formatDate(row.workDate) }}</td>
+            <td class="col-left">
+              <app-status-indicator
+                [label]="getDayTypeLabel(row.dayType)"
+                [tone]="getDayTypeTone(row.dayType)"
+              />
+            </td>
+            <td class="col-left">
+              @if (row.shiftName) {
+                <span class="shift-name">{{ row.shiftName }}</span>
+                @if (row.shiftCode) {
+                  <span class="shift-code font-mono">({{ row.shiftCode }})</span>
+                }
+              } @else {
+                <span class="text-muted">—</span>
+              }
+            </td>
+            <td class="col-right tabular-nums">{{ formatShiftTime(row) }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</section>

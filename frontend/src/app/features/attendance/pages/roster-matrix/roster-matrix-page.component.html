@@ -1,0 +1,168 @@
+<div class="page-stack">
+  <header class="page-header">
+    <div class="page-heading">
+      <h1 class="page-title">ตารางกะ (Roster Matrix)</h1>
+      <p class="page-subtitle">เลือกพนักงานแล้วกำหนดกะงานรายวันหรือวันหยุดแบบกลุ่ม</p>
+    </div>
+
+    <div class="header-actions">
+      <button type="button" class="btn-primary focus-ring" (click)="openBulkDrawer()">
+        จัดกะแบบกลุ่ม ({{ selectedEmployeeIds().length }} คน)
+      </button>
+    </div>
+  </header>
+
+  @if (feedbackSuccess(); as msg) {
+    <div class="feedback-banner is-success" role="status">
+      <span>{{ msg }}</span>
+      <button type="button" class="btn-secondary focus-ring" (click)="feedbackSuccess.set(null)">ปิด</button>
+    </div>
+  }
+
+  <div class="surface-card filter-bar-card">
+    <div class="filter-controls">
+      <label class="filter-field">
+        <span class="filter-label">ตั้งแต่</span>
+        <input
+          type="date"
+          class="filter-input focus-ring"
+          [value]="startDate()"
+          (change)="startDate.set($any($event.target).value); loadRosters()"
+        />
+      </label>
+      <label class="filter-field">
+        <span class="filter-label">ถึง</span>
+        <input
+          type="date"
+          class="filter-input focus-ring"
+          [value]="endDate()"
+          (change)="endDate.set($any($event.target).value); loadRosters()"
+        />
+      </label>
+      <label class="filter-field">
+        <span class="filter-label">สาขา</span>
+        <select
+          class="filter-input focus-ring"
+          [value]="branchFilter()"
+          (change)="branchFilter.set($any($event.target).value); loadRosters()"
+        >
+          <option value="">ทุกสาขา</option>
+          @for (b of branches(); track b.id) { <option [value]="b.id">{{ b.name }}</option> }
+        </select>
+      </label>
+      <label class="filter-field">
+        <span class="filter-label">แผนก</span>
+        <select
+          class="filter-input focus-ring"
+          [value]="departmentFilter()"
+          (change)="departmentFilter.set($any($event.target).value); loadRosters()"
+        >
+          <option value="">ทุกแผนก</option>
+          @for (d of departments(); track d.id) { <option [value]="d.id">{{ d.name }}</option> }
+        </select>
+      </label>
+    </div>
+  </div>
+
+  <app-state-container
+    [isLoading]="isLoading()"
+    [isEmpty]="matrixRows().length === 0"
+    [errorMessage]="errorMessage()"
+    errorTitle="ไม่สามารถโหลดตารางกะงานได้"
+    emptyTitle="ไม่พบรายชื่อพนักงาน"
+    emptyDescription="ลองเปลี่ยนตัวกรองสาขาหรือแผนกด้านบน"
+    [skeletonRows]="6"
+    (retry)="loadInitial()"
+  >
+    <div class="surface-card table-scroll">
+      <table class="matrix-table">
+        <thead>
+          <tr>
+            <th class="col-check">เลือก</th>
+            <th>พนักงาน</th>
+            @for (d of dateColumns(); track d) {
+              <th class="tabular-nums">{{ formatHeaderDate(d) }}</th>
+            }
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of matrixRows(); track row.employeeId) {
+            <tr>
+              <td class="col-check">
+                <input
+                  type="checkbox"
+                  [checked]="isEmployeeSelected(row.employeeId)"
+                  (change)="toggleEmployeeSelection(row.employeeId)"
+                  [attr.aria-label]="'เลือก ' + row.employeeName"
+                />
+              </td>
+              <td>
+                <div class="emp-cell">
+                  <strong class="font-mono">{{ row.employeeCode }}</strong>
+                  <span>{{ row.employeeName }}</span>
+                </div>
+              </td>
+              @for (d of dateColumns(); track d) {
+                <td>
+                  @if (row.cells[d]; as cell) {
+                    @if (cell.dayType === 'WORKDAY' && cell.shiftCode) {
+                      <app-status-indicator [label]="cell.shiftCode" tone="success" />
+                    } @else {
+                      <app-status-indicator
+                        [label]="getDayTypeLabel(cell.dayType)"
+                        [tone]="getDayTypeTone(cell.dayType)"
+                      />
+                    }
+                  } @else {
+                    <span class="text-muted">-</span>
+                  }
+                </td>
+              }
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </app-state-container>
+
+  <app-slide-drawer
+    [isOpen]="isDrawerOpen()"
+    title="จัดตารางกะแบบกลุ่ม"
+    [subtitle]="'กำหนดให้พนักงานที่เลือก ' + selectedEmployeeIds().length + ' คน'"
+    (closed)="isDrawerOpen.set(false)"
+  >
+    <form class="drawer-form" [formGroup]="bulkForm" (ngSubmit)="submitBulkAssign()">
+      @if (formError(); as errMsg) {
+        <div class="feedback-banner is-error" role="alert">{{ errMsg }}</div>
+      }
+      <div class="form-grid-2">
+        <app-form-field label="วันที่เริ่มต้น" forId="rm-start" [required]="true" [control]="bulkForm.controls.startDate">
+          <input id="rm-start" type="date" class="form-control focus-ring" formControlName="startDate" />
+        </app-form-field>
+        <app-form-field label="วันที่สิ้นสุด" forId="rm-end" [required]="true" [control]="bulkForm.controls.endDate">
+          <input id="rm-end" type="date" class="form-control focus-ring" formControlName="endDate" />
+        </app-form-field>
+      </div>
+      <app-form-field label="ประเภทวัน" forId="rm-daytype" [required]="true" [control]="bulkForm.controls.dayType">
+        <select id="rm-daytype" class="form-control focus-ring" formControlName="dayType">
+          <option value="WORKDAY">วันทำงาน (WORKDAY)</option>
+          <option value="DAY_OFF">วันหยุดประจำสัปดาห์ (DAY_OFF)</option>
+          <option value="PUBLIC_HOLIDAY">วันหยุดนักขัตฤกษ์ (PUBLIC_HOLIDAY)</option>
+        </select>
+      </app-form-field>
+      @if (bulkForm.controls.dayType.value === 'WORKDAY') {
+        <app-form-field label="กะงาน" forId="rm-shift" [control]="bulkForm.controls.shiftDefinitionId">
+          <select id="rm-shift" class="form-control focus-ring" formControlName="shiftDefinitionId">
+            @for (s of shifts(); track s.id) {
+              <option [value]="s.id">{{ s.code }} · {{ s.name }}</option>
+            }
+          </select>
+        </app-form-field>
+      }
+      <div class="drawer-actions">
+        <button type="button" class="btn-secondary focus-ring" (click)="isDrawerOpen.set(false)">ยกเลิก</button>
+        <button type="submit" class="btn-primary focus-ring" [disabled]="isSubmitting()">บันทึกตารางกะ</button>
+      </div>
+    </form>
+  </app-slide-drawer>
+</div>

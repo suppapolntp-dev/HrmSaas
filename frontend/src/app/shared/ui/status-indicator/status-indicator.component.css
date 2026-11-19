@@ -1,0 +1,19 @@
+.tone-success {
+  color: var(--status-success-fg);
+}
+
+.tone-warning {
+  color: var(--status-warning-fg);
+}
+
+.tone-danger {
+  color: var(--status-danger-fg);
+}
+
+.tone-info {
+  color: var(--status-info-fg);
+}
+
+.tone-neutral {
+  color: var(--status-neutral-fg);
+}

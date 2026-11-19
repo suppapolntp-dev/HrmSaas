@@ -1,0 +1,92 @@
+<section class="surface-card checkin-card" aria-label="สถานะการลงเวลาทำงานวันนี้">
+  <header class="checkin-header">
+    <div class="checkin-meta">
+      <div class="checkin-title-row">
+        <h2 class="section-title">การลงเวลาทำงานวันนี้</h2>
+        <app-status-indicator [label]="statusLabel()" [tone]="statusTone()" />
+      </div>
+      <p class="checkin-subtitle tabular-nums">
+        {{ formattedWorkDate() }} · {{ attendance().branchName }}
+      </p>
+    </div>
+
+    <div class="live-clock-block">
+      <span class="clock-label">เวลาปัจจุบัน</span>
+      <span class="clock-value tabular-nums">{{ currentTimeText() }}</span>
+    </div>
+  </header>
+
+  <div class="shift-strip">
+    <div class="shift-info">
+      <span class="shift-caption">กะงานวันนี้ ({{ dayTypeLabel() }})</span>
+      <span class="shift-name">
+        @if (attendance().shiftName) {
+          {{ attendance().shiftName }}
+          @if (attendance().shiftCode) {
+            <span class="shift-code font-mono">({{ attendance().shiftCode }})</span>
+          }
+        } @else {
+          ไม่ระบุกะงานประจำวัน
+        }
+      </span>
+    </div>
+
+    <div class="shift-hours">
+      <span class="shift-caption">เวลากะมาตรฐาน</span>
+      <span class="shift-time tabular-nums">{{ shiftWindowText() }}</span>
+    </div>
+  </div>
+
+  <div class="punch-metrics-grid">
+    <div class="metric-cell">
+      <span class="metric-label">เวลาเข้างานจริง</span>
+      <span class="metric-value tabular-nums">{{ actualInText() }}</span>
+    </div>
+
+    <div class="metric-cell">
+      <span class="metric-label">เวลาออกงานจริง</span>
+      <span class="metric-value tabular-nums">{{ actualOutText() }}</span>
+    </div>
+
+    <div class="metric-cell">
+      <span class="metric-label">ชั่วโมงทำงานสุทธิ</span>
+      <span class="metric-value tabular-nums">{{ workedDurationText() }}</span>
+    </div>
+  </div>
+
+  @if (actionError()) {
+    <div class="error-banner punch-error" role="alert">
+      <p class="punch-error-text">{{ actionError() }}</p>
+    </div>
+  }
+
+  <footer class="checkin-actions">
+    @if (canCheckIn()) {
+      <button
+        type="button"
+        class="btn-primary focus-ring cta-punch"
+        [disabled]="isSubmitting()"
+        (click)="onCheckIn()"
+      >
+        {{ isSubmitting() ? 'กำลังบันทึกเวลาเข้างาน...' : 'ลงเวลาเข้างาน (Check-in)' }}
+      </button>
+    } @else if (canCheckOut()) {
+      <button
+        type="button"
+        class="btn-primary focus-ring cta-punch"
+        [disabled]="isSubmitting()"
+        (click)="onCheckOut()"
+      >
+        {{ isSubmitting() ? 'กำลังบันทึกเวลาออกงาน...' : 'ลงเวลาออกงาน (Check-out)' }}
+      </button>
+    } @else if (attendance().isLockedByPayroll) {
+      <span class="completed-note">งวดบัญชีนี้ถูกล็อกแล้ว ไม่สามารถลงเวลาเพิ่มเติมได้</span>
+    } @else {
+      <span class="completed-note">ลงเวลาเข้า-ออกงานครบถ้วนแล้วสำหรับวันนี้</span>
+    }
+
+    <a routerLink="/portal/attendance" class="btn-secondary focus-ring link-btn">
+      ดูประวัติลงเวลา
+    </a>
+  </footer>
+</section>

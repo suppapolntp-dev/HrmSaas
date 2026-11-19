@@ -1,0 +1,46 @@
+<section class="surface-card payslip-card" aria-label="สลิปเงินเดือนงวดล่าสุด">
+  <header class="card-header">
+    <div class="header-text">
+      <div class="title-row">
+        <h2 class="section-title">สลิปเงินเดือนล่าสุด</h2>
+        <app-status-indicator
+          [label]="payslip().isLocked ? 'ปิดงวดแล้ว' : 'รอตรวจสอบ'"
+          [tone]="payslip().isLocked ? 'success' : 'warning'"
+        />
+      </div>
+      <p class="section-subtitle tabular-nums">
+        งวด <span class="font-mono">{{ payslip().periodCode }}</span> · จ่ายวันที่ {{ formatPayDate(payslip().payDate) }}
+      </p>
+    </div>
+
+    <div class="header-actions">
+      <button
+        type="button"
+        class="btn-secondary focus-ring"
+        (click)="toggleReveal()"
+        [attr.aria-pressed]="isRevealed()"
+      >
+        {{ isRevealed() ? 'ซ่อนตัวเลข' : 'แสดงตัวเลข' }}
+      </button>
+      <a routerLink="/portal/payslips" class="btn-secondary focus-ring link-btn">
+        ดูสลิปทั้งหมด
+      </a>
+    </div>
+  </header>
+
+  <div class="payslip-net-row">
+    <span class="net-label">เงินได้สุทธิ (Net Pay)</span>
+    <span class="net-value tabular-nums">{{ formatAmount(payslip().netPay) }}</span>
+  </div>
+
+  <div class="payslip-breakdown">
+    <div class="breakdown-cell">
+      <span class="breakdown-label">รายได้รวม</span>
+      <span class="breakdown-value tabular-nums">{{ formatAmount(payslip().grossIncome) }}</span>
+    </div>
+    <div class="breakdown-cell">
+      <span class="breakdown-label">รายการหักรวม</span>
+      <span class="breakdown-value tabular-nums">{{ formatAmount(payslip().totalDeductions) }}</span>
+    </div>
+  </div>
+</section>

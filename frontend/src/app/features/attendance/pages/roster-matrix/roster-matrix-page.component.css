@@ -1,0 +1,38 @@
+:host {
+  display: block;
+}
+
+.filter-bar-card {
+  padding: var(--space-4);
+}
+
+.matrix-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-xs);
+}
+
+.matrix-table th,
+.matrix-table td {
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--border-subtle);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.matrix-table th {
+  color: var(--text-muted);
+  font-weight: var(--font-weight-medium);
+  background-color: var(--surface-subtle);
+}
+
+.col-check {
+  width: 48px;
+  text-align: center;
+}
+
+.emp-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}

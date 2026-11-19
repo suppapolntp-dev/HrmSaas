@@ -1,0 +1,110 @@
+<div class="page-stack">
+  <header class="page-header">
+    <div class="page-heading">
+      <h1 class="page-title">บันทึกเวลาประจำวัน</h1>
+      <p class="page-subtitle">ตรวจสอบเวลาสแกนเข้า-ออกของพนักงานทั้งองค์กร และติดตามเคสสาย/ลืมสแกน</p>
+    </div>
+  </header>
+
+  @if (!isLoading() && !errorMessage() && logs().length > 0) {
+    <section class="kpi-strip" aria-label="สรุปสถานะเวลาทำงาน">
+      <article class="surface-card kpi-card">
+        <span class="kpi-label">รายการทั้งหมด</span>
+        <strong class="kpi-value tabular-nums">{{ stats().total }}</strong>
+      </article>
+      <article class="surface-card kpi-card">
+        <span class="kpi-label">มาสาย</span>
+        <strong class="kpi-value tabular-nums">{{ stats().late }}</strong>
+      </article>
+      <article class="surface-card kpi-card">
+        <span class="kpi-label">ออกก่อนเวลา</span>
+        <strong class="kpi-value tabular-nums">{{ stats().earlyOut }}</strong>
+      </article>
+      <article class="surface-card kpi-card">
+        <span class="kpi-label">ลืมลงเวลา / ขาดงาน</span>
+        <strong class="kpi-value tabular-nums">{{ stats().missingOrAbsent }}</strong>
+      </article>
+    </section>
+  }
+
+  <app-state-container
+    [isLoading]="isLoading()"
+    [isEmpty]="logs().length === 0"
+    [errorMessage]="errorMessage()"
+    errorTitle="ไม่สามารถโหลดบันทึกเวลาประจำวันได้"
+    emptyTitle="ไม่พบบันทึกเวลาในช่วงวันที่เลือก"
+    emptyDescription="ลองขยายช่วงวันที่หรือเปลี่ยนตัวกรองสาขา/แผนก"
+    [skeletonRows]="6"
+    (retry)="loadInitial()"
+  >
+    <app-data-table
+      title="สรุปการลงเวลารายวัน"
+      [searchable]="true"
+      searchPlaceholder="ค้นหารหัสหรือชื่อพนักงาน..."
+      [searchQuery]="searchQuery()"
+      [columns]="columns"
+      [rows]="pagedLogs()"
+      [rowAccentFn]="rowAccentFn"
+      [sortBy]="sortBy()"
+      [sortDirection]="sortDirection()"
+      [page]="page()"
+      [pageSize]="pageSize()"
+      [totalCount]="sortedLogs().length"
+      [cellTemplates]="{
+        workDate: dateCell,
+        actualInUtc: inCell,
+        actualOutUtc: outCell,
+        workedMinutes: durCell,
+        attendanceStatus: statusCell
+      }"
+      (searchChange)="searchQuery.set($event); page.set(1)"
+      (sortChange)="onSortChange($event)"
+      (pageChange)="page.set($event)"
+      (pageSizeChange)="pageSize.set($event); page.set(1)"
+    >
+      <div slot-filters class="filter-controls">
+        <label class="filter-field">
+          <span class="filter-label">ตั้งแต่</span>
+          <input type="date" class="filter-input focus-ring" [value]="startDate()" (change)="startDate.set($any($event.target).value); loadLogs()" />
+        </label>
+        <label class="filter-field">
+          <span class="filter-label">ถึง</span>
+          <input type="date" class="filter-input focus-ring" [value]="endDate()" (change)="endDate.set($any($event.target).value); loadLogs()" />
+        </label>
+        <label class="filter-field">
+          <span class="filter-label">สาขา</span>
+          <select class="filter-input focus-ring" [value]="branchFilter()" (change)="branchFilter.set($any($event.target).value); loadLogs()">
+            <option value="">ทุกสาขา</option>
+            @for (b of branches(); track b.id) { <option [value]="b.id">{{ b.name }}</option> }
+          </select>
+        </label>
+        <label class="filter-field">
+          <span class="filter-label">แผนก</span>
+          <select class="filter-input focus-ring" [value]="departmentFilter()" (change)="departmentFilter.set($any($event.target).value); loadLogs()">
+            <option value="">ทุกแผนก</option>
+            @for (d of departments(); track d.id) { <option [value]="d.id">{{ d.name }}</option> }
+          </select>
+        </label>
+        <label class="filter-field">
+          <span class="filter-label">สถานะ</span>
+          <select class="filter-input focus-ring" [value]="statusFilter()" (change)="statusFilter.set($any($event.target).value); loadLogs()">
+            <option value="">ทุกสถานะ</option>
+            <option value="PRESENT">ปกติ</option>
+            <option value="LATE">มาสาย</option>
+            <option value="EARLY_OUT">ออกก่อน</option>
+            <option value="MISSING_PUNCH">ลืมลงเวลา</option>
+            <option value="ABSENT">ขาดงาน</option>
+          </select>
+        </label>
+      </div>
+    </app-data-table>
+
+    <ng-template #dateCell let-row><span class="tabular-nums">{{ formatDate(row.workDate) }}</span></ng-template>
+    <ng-template #inCell let-row><span class="font-mono tabular-nums">{{ formatTime(row.actualInUtc) }}</span></ng-template>
+    <ng-template #outCell let-row><span class="font-mono tabular-nums">{{ formatTime(row.actualOutUtc) }}</span></ng-template>
+    <ng-template #durCell let-row><span class="tabular-nums">{{ formatDuration(row.workedMinutes) }}</span></ng-template>
+    <ng-template #statusCell let-row>
+      <app-status-indicator [label]="getStatusLabel(row.attendanceStatus)" [tone]="getStatusTone(row.attendanceStatus)" />
+    </ng-template>
+  </app-state-container>
+</div>

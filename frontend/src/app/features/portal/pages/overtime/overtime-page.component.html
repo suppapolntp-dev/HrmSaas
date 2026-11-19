@@ -1,0 +1,173 @@
+<div class="page-stack">
+  <header class="page-header">
+    <div class="page-heading">
+      <h1 class="page-title">คำขอ OT ของฉัน</h1>
+      <p class="page-subtitle">ยื่นคำขอทำงานล่วงเวลาและติดตามสถานะการอนุมัติเข้าคำนวณเงินเดือน</p>
+    </div>
+
+    <div class="header-actions">
+      <a routerLink="/portal/dashboard" class="btn-secondary focus-ring link-btn">กลับแดชบอร์ด</a>
+      <button type="button" class="btn-primary focus-ring" (click)="openCreateDrawer()">
+        ขอทำ OT
+      </button>
+    </div>
+  </header>
+
+  @if (feedbackSuccess(); as msg) {
+    <div class="feedback-banner is-success" role="status">
+      <span>{{ msg }}</span>
+      <button type="button" class="btn-secondary focus-ring" (click)="feedbackSuccess.set(null)">
+        ปิด
+      </button>
+    </div>
+  }
+
+  <app-state-container
+    [isLoading]="isLoading()"
+    [isEmpty]="requests().length === 0"
+    [errorMessage]="errorMessage()"
+    errorTitle="ไม่สามารถโหลดคำขอ OT ได้"
+    emptyTitle="ยังไม่มีคำขอทำ OT"
+    emptyDescription="กดปุ่ม ขอทำ OT ด้านบนเพื่อส่งคำขอเข้าสายอนุมัติ"
+    [skeletonRows]="5"
+    (retry)="loadRequests()"
+  >
+    <app-data-table
+      title="ประวัติคำขอทำงานล่วงเวลา"
+      subtitle="ตรวจสอบชั่วโมง OT ที่ยื่นขอและผลอนุมัติ"
+      [searchable]="true"
+      searchPlaceholder="ค้นหารายละเอียด OT..."
+      [searchQuery]="searchQuery()"
+      [columns]="columns"
+      [rows]="pagedRequests()"
+      [sortBy]="sortBy()"
+      [sortDirection]="sortDirection()"
+      [page]="page()"
+      [pageSize]="pageSize()"
+      [totalCount]="sortedRequests().length"
+      [cellTemplates]="{
+        submittedAt: submittedCell,
+        payloadSummary: payloadCell,
+        currentStepOrder: stepCell,
+        status: statusCell
+      }"
+      (searchChange)="searchQuery.set($event); page.set(1)"
+      (sortChange)="onSortChange($event)"
+      (pageChange)="page.set($event)"
+      (pageSizeChange)="pageSize.set($event); page.set(1)"
+    >
+      <div slot-filters class="filter-controls">
+        <label class="filter-field">
+          <span class="filter-label">สถานะ</span>
+          <select class="filter-input focus-ring" [value]="statusFilter()" (change)="onStatusChange($event)">
+            <option value="">ทุกสถานะ</option>
+            <option value="PENDING">รออนุมัติ</option>
+            <option value="APPROVED">อนุมัติแล้ว</option>
+            <option value="REJECTED">ปฏิเสธ</option>
+          </select>
+        </label>
+      </div>
+    </app-data-table>
+
+    <ng-template #submittedCell let-row>
+      <span class="tabular-nums">{{ formatSubmitted(row.submittedAt) }}</span>
+    </ng-template>
+
+    <ng-template #payloadCell let-row>
+      <span>{{ formatPayload(row.payloadSummary) }}</span>
+    </ng-template>
+
+    <ng-template #stepCell let-row>
+      <span class="tabular-nums">ขั้นที่ {{ row.currentStepOrder }}</span>
+    </ng-template>
+
+    <ng-template #statusCell let-row>
+      <app-status-indicator
+        [label]="getStatusLabel(row.status)"
+        [tone]="getStatusTone(row.status)"
+      />
+    </ng-template>
+  </app-state-container>
+
+  <app-slide-drawer
+    [isOpen]="isDrawerOpen()"
+    title="ยื่นคำขอทำ OT"
+    subtitle="ระบบจะตรวจสอบช่วงเวลาและส่งต่อให้หัวหน้างานอนุมัติ"
+    (closed)="closeDrawer()"
+  >
+    <form class="drawer-form" [formGroup]="otForm" (ngSubmit)="submitOvertime()">
+      @if (formError(); as errMsg) {
+        <div class="feedback-banner is-error" role="alert">{{ errMsg }}</div>
+      }
+
+      <app-form-field
+        label="วันที่ทำ OT"
+        forId="ot-date"
+        [required]="true"
+        [control]="otForm.controls.workDate"
+      >
+        <input id="ot-date" type="date" class="form-control focus-ring" formControlName="workDate" />
+      </app-form-field>
+
+      <div class="form-grid-2">
+        <app-form-field
+          label="เวลาเริ่มต้น"
+          forId="ot-start"
+          [required]="true"
+          [control]="otForm.controls.startTime"
+        >
+          <input id="ot-start" type="time" class="form-control focus-ring" formControlName="startTime" />
+        </app-form-field>
+
+        <app-form-field
+          label="เวลาสิ้นสุด"
+          forId="ot-end"
+          [required]="true"
+          [control]="otForm.controls.endTime"
+        >
+          <input id="ot-end" type="time" class="form-control focus-ring" formControlName="endTime" />
+        </app-form-field>
+      </div>
+
+      <app-form-field
+        label="จำนวนชั่วโมง OT"
+        forId="ot-hours"
+        [required]="true"
+        [control]="otForm.controls.hours"
+      >
+        <input
+          id="ot-hours"
+          type="number"
+          step="0.5"
+          min="0.5"
+          class="form-control focus-ring"
+          formControlName="hours"
+        />
+      </app-form-field>
+
+      <app-form-field
+        label="รายละเอียดงาน / เหตุผล"
+        forId="ot-reason"
+        [required]="true"
+        [control]="otForm.controls.reason"
+      >
+        <textarea
+          id="ot-reason"
+          rows="4"
+          class="form-control focus-ring"
+          formControlName="reason"
+          placeholder="ระบุรายละเอียดงานที่ทำล่วงเวลา..."
+        ></textarea>
+      </app-form-field>
+
+      <div class="drawer-actions">
+        <button type="button" class="btn-secondary focus-ring" (click)="closeDrawer()" [disabled]="isSubmitting()">
+          ยกเลิก
+        </button>
+        <button type="submit" class="btn-primary focus-ring" [disabled]="isSubmitting()">
+          @if (isSubmitting()) { กำลังส่งคำขอ... } @else { ส่งคำขอ OT }
+        </button>
+      </div>
+    </form>
+  </app-slide-drawer>
+</div>

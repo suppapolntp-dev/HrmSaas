@@ -1,0 +1,261 @@
+<div class="table-shell">
+  <!-- 1. HEAD SECTION (Title, Status Indicator, Search, Header Actions) -->
+  @if (hasHeadSection()) {
+    <div class="table-head">
+      <div class="table-head-info">
+        @if (title()) {
+          <div class="table-title-row">
+            <h3 class="table-title">{{ title() }}</h3>
+            @if (statusLabel(); as labelText) {
+              <app-status-indicator [label]="labelText" [tone]="statusTone()" />
+            }
+          </div>
+        } @else if (statusLabel(); as labelText) {
+          <app-status-indicator [label]="labelText" [tone]="statusTone()" />
+        }
+
+        @if (subtitle()) {
+          <p class="table-subtitle">{{ subtitle() }}</p>
+        }
+      </div>
+
+      <div class="table-head-controls">
+        @if (searchable()) {
+          <div class="search-box">
+            <span class="search-icon" aria-hidden="true">⌕</span>
+            <input
+              type="text"
+              class="search-input focus-ring"
+              [value]="searchQuery()"
+              [placeholder]="searchPlaceholder()"
+              [attr.aria-label]="searchPlaceholder()"
+              (input)="onSearchInput($event)"
+            />
+            @if (searchQuery().length > 0) {
+              <button
+                type="button"
+                class="search-clear-btn focus-ring"
+                aria-label="ล้างคำค้นหา"
+                (click)="onClearSearch()"
+              >
+                ✕
+              </button>
+            }
+          </div>
+        }
+
+        <ng-content select="[slot-header-actions]" />
+      </div>
+    </div>
+  }
+
+  <div class="table-toolbar">
+    <ng-content select="[slot-toolbar]" />
+  </div>
+
+  <!-- 2. FILTER BAR (Custom Filters Slot + Sort By Dropdown) -->
+  <div class="table-filter-bar" [class.has-sort]="showSortDropdown() && sortableColumns().length > 0">
+    <div class="filter-slot-group">
+      <ng-content select="[slot-filters]" />
+    </div>
+
+    @if (showSortDropdown() && sortableColumns().length > 0) {
+      <div class="sort-dropdown-group">
+        <label class="sort-dropdown-label" for="table-sort-select">เรียงตาม:</label>
+        <select
+          id="table-sort-select"
+          class="sort-select focus-ring"
+          [value]="currentSortDropdownValue()"
+          (change)="onSortDropdownChange($event)"
+        >
+          <option value="">ค่าเริ่มต้น (Default)</option>
+          @for (col of sortableColumns(); track col.key) {
+            <option [value]="col.key + ':asc'">{{ col.label }} (น้อย → มาก / A → Z)</option>
+            <option [value]="col.key + ':desc'">{{ col.label }} (มาก → น้อย / Z → A)</option>
+          }
+        </select>
+      </div>
+    }
+  </div>
+
+  <!-- 3. TABLE BODY -->
+  <div class="table-scroll">
+    <table class="data-table">
+      <thead>
+        <tr>
+          @for (column of columns(); track column.key) {
+            <th
+              [style.width]="column.width ?? null"
+              [class.align-right]="column.align === 'right'"
+            >
+              @if (column.sortable) {
+                <button
+                  type="button"
+                  class="sort-btn focus-ring"
+                  [class.sort-btn-right]="column.align === 'right'"
+                  (click)="onSort(column)"
+                >
+                  <span>{{ column.label }}</span>
+                  <span
+                    class="sort-indicator"
+                    [class.is-active]="sortBy() === column.key && sortDirection() !== null"
+                    aria-hidden="true"
+                  >
+                    {{ getSortIndicatorSymbol(column.key) }}
+                  </span>
+                </button>
+              } @else {
+                <span>{{ column.label }}</span>
+              }
+            </th>
+          }
+
+          @if (hasActionsColumn()) {
+            <th class="align-right actions-col-header">{{ actionsLabel() }}</th>
+          }
+        </tr>
+      </thead>
+      <tbody>
+        @if (rows().length > 0) {
+          @for (row of rows(); track trackRow($index, row); let rowIndex = $index) {
+            @let accentTone = getRowAccentTone(row);
+            <tr
+              [class.row-clickable]="clickableRows()"
+              [class.row-accent-warning]="accentTone === 'warning'"
+              [class.row-accent-danger]="accentTone === 'danger'"
+              (click)="onRowClick(row)"
+            >
+              @for (column of columns(); track column.key) {
+                @let cellTemplate = cellTemplates()[column.key];
+                @let cellValue = getCellValue(row, column.key);
+                <td
+                  [class.align-right]="column.align === 'right'"
+                  [class.tabular-nums]="column.isNumeric || column.align === 'right'"
+                  [class.font-mono]="column.isMono"
+                >
+                  @if (cellTemplate) {
+                    <ng-container
+                      [ngTemplateOutlet]="cellTemplate"
+                      [ngTemplateOutletContext]="{
+                        $implicit: row,
+                        row: row,
+                        column: column,
+                        value: cellValue,
+                      }"
+                    />
+                  } @else {
+                    <span>{{ formatCellValue(cellValue) }}</span>
+                  }
+                </td>
+              }
+
+              @if (hasActionsColumn()) {
+                @let visibleActions = getVisibleActions(row);
+                <td class="align-right actions-cell" (click)="$event.stopPropagation()">
+                  @if (visibleActions.length > 0) {
+                    <div class="row-actions-wrap">
+                      <button
+                        type="button"
+                        class="action-trigger-btn focus-ring"
+                        aria-label="เปิดเมนูคำสั่ง"
+                        [attr.aria-expanded]="openActionRowIndex() === rowIndex"
+                        (click)="toggleActionMenu(rowIndex, $event)"
+                      >
+                        ⋯
+                      </button>
+
+                      @if (openActionRowIndex() === rowIndex) {
+                        <div class="action-menu" role="menu">
+                          @for (action of visibleActions; track action.key) {
+                            <button
+                              type="button"
+                              role="menuitem"
+                              class="action-menu-item focus-ring"
+                              [class.is-danger]="action.variant === 'danger'"
+                              (click)="onActionClick(action, row, $event)"
+                            >
+                              {{ action.label }}
+                            </button>
+                          }
+                        </div>
+                      }
+                    </div>
+                  }
+                </td>
+              }
+            </tr>
+          }
+        } @else {
+          <tr>
+            <td [attr.colspan]="totalColumnCount()" class="empty-cell">
+              {{ emptyMessage() }}
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 4. FOOTER & JUMP-TO-PAGE PAGINATION -->
+  @if (showPagination()) {
+    <div class="table-pagination">
+      <div class="pagination-left">
+        <span class="pagination-summary tabular-nums">
+          @if (totalCount() === 0) {
+            0 รายการ
+          } @else {
+            แสดง {{ rangeStart() }}–{{ rangeEnd() }} จาก {{ totalCount() }} รายการ
+          }
+        </span>
+
+        <label class="page-size-label">
+          <span>ต่อหน้า</span>
+          <select
+            class="page-size-select focus-ring tabular-nums"
+            [value]="pageSize()"
+            (change)="onPageSizeSelect($event)"
+          >
+            @for (size of pageSizeOptions; track size) {
+              <option [value]="size">{{ size }}</option>
+            }
+          </select>
+        </label>
+      </div>
+
+      <div class="page-buttons">
+        <button
+          type="button"
+          class="btn-secondary focus-ring"
+          [disabled]="page() <= 1"
+          (click)="onPageChange(page() - 1)"
+        >
+          ก่อนหน้า
+        </button>
+
+        <div class="page-jump-group">
+          <span class="page-jump-label">หน้า</span>
+          <input
+            type="text"
+            inputmode="numeric"
+            class="page-jump-input focus-ring tabular-nums"
+            aria-label="ระบุเลขหน้า"
+            [value]="pageInputValue()"
+            (input)="onPageInputChange($event)"
+            (keydown.enter)="onPageInputCommit()"
+            (blur)="onPageInputCommit()"
+          />
+          <span class="page-jump-total tabular-nums">/ {{ totalPages() }}</span>
+        </div>
+
+        <button
+          type="button"
+          class="btn-secondary focus-ring"
+          [disabled]="page() >= totalPages()"
+          (click)="onPageChange(page() + 1)"
+        >
+          ถัดไป
+        </button>
+      </div>
+    </div>
+  }
+</div>

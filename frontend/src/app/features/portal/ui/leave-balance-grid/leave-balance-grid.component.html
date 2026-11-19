@@ -1,0 +1,42 @@
+<section class="surface-card leave-card" aria-label="สรุปโควตาวันลาคงเหลือ">
+  <header class="card-header">
+    <div class="header-text">
+      <h2 class="section-title">โควตาวันลาคงเหลือ</h2>
+      <p class="section-subtitle">ยอดวันลาประจำปีจากนโยบายบริษัท</p>
+    </div>
+
+    <a routerLink="/portal/leaves" class="btn-secondary focus-ring link-btn">
+      ยื่นใบลา
+    </a>
+  </header>
+
+  <div class="balance-list">
+    @for (item of balances(); track item.id) {
+      <article class="balance-item">
+        <div class="balance-top">
+          <div class="balance-name-group">
+            <span class="balance-name">{{ item.leaveTypeName }}</span>
+            <span class="balance-code font-mono">{{ item.leaveTypeCode }}</span>
+          </div>
+
+          <div class="balance-remaining">
+            <span class="remaining-value tabular-nums">{{ formatDays(item.remainingDays) }}</span>
+            <span class="remaining-unit">วัน</span>
+          </div>
+        </div>
+
+        <div class="progress-track" aria-hidden="true">
+          <div class="progress-fill" [style.width.%]="getProgressWidthPercent(item)"></div>
+        </div>
+
+        <div class="balance-breakdown tabular-nums">
+          <span>สิทธิ์รวม {{ formatDays(getTotalAvailable(item)) }} วัน</span>
+          <span>ใช้แล้ว {{ formatDays(item.usedDays) }}</span>
+          @if (item.pendingDays > 0) {
+            <span class="pending-text">รออนุมัติ {{ formatDays(item.pendingDays) }}</span>
+          }
+        </div>
+      </article>
+    }
+  </div>
+</section>

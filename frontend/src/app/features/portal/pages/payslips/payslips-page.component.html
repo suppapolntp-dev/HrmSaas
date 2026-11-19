@@ -1,0 +1,146 @@
+<div class="page-stack">
+  <header class="page-header">
+    <div class="page-heading">
+      <h1 class="page-title">สลิปเงินเดือน</h1>
+      <p class="page-subtitle">ตรวจสอบรายละเอียดรายได้ รายการหัก ประกันสังคม และภาษีสะสมรายงวด</p>
+    </div>
+
+    <div class="header-actions">
+      <a routerLink="/portal/dashboard" class="btn-secondary focus-ring link-btn">กลับแดชบอร์ด</a>
+    </div>
+  </header>
+
+  <app-state-container
+    [isLoading]="isLoading()"
+    [isEmpty]="payslips().length === 0"
+    [errorMessage]="errorMessage()"
+    errorTitle="ไม่สามารถโหลดข้อมูลสลิปเงินเดือนได้"
+    emptyTitle="ยังไม่มีข้อมูลสลิปเงินเดือน"
+    emptyDescription="สลิปจะแสดงหลังจากฝ่ายบุคคลคำนวณงวดเงินเดือนเรียบร้อยแล้ว"
+    [skeletonRows]="5"
+    (retry)="loadPayslips()"
+  >
+    <app-data-table
+      title="รายการสลิปเงินเดือนย้อนหลัง"
+      subtitle="คลิกดูรายละเอียดหรือสั่งพิมพ์เป็น PDF"
+      [searchable]="true"
+      searchPlaceholder="ค้นหารหัสงวดเงินเดือน..."
+      [searchQuery]="searchQuery()"
+      [columns]="columns"
+      [rows]="pagedPayslips()"
+      [actions]="tableActions"
+      [clickableRows]="true"
+      [sortBy]="sortBy()"
+      [sortDirection]="sortDirection()"
+      [page]="page()"
+      [pageSize]="pageSize()"
+      [totalCount]="sortedPayslips().length"
+      [cellTemplates]="{
+        grossIncome: grossCell,
+        ssoEmployeeAmount: ssoCell,
+        withholdingTaxAmount: taxCell,
+        totalDeductions: dedCell,
+        netPay: netCell,
+        isLocked: lockCell
+      }"
+      (searchChange)="searchQuery.set($event); page.set(1)"
+      (sortChange)="onSortChange($event)"
+      (pageChange)="page.set($event)"
+      (pageSizeChange)="pageSize.set($event); page.set(1)"
+      (rowClick)="selectedPayslip.set($event)"
+    />
+
+    <ng-template #grossCell let-row>
+      <span class="tabular-nums">{{ formatMoney(row.grossIncome) }}</span>
+    </ng-template>
+
+    <ng-template #ssoCell let-row>
+      <span class="tabular-nums">{{ formatMoney(row.ssoEmployeeAmount) }}</span>
+    </ng-template>
+
+    <ng-template #taxCell let-row>
+      <span class="tabular-nums">{{ formatMoney(row.withholdingTaxAmount) }}</span>
+    </ng-template>
+
+    <ng-template #dedCell let-row>
+      <span class="tabular-nums">{{ formatMoney(row.totalDeductions) }}</span>
+    </ng-template>
+
+    <ng-template #netCell let-row>
+      <strong class="tabular-nums">{{ formatMoney(row.netPay) }}</strong>
+    </ng-template>
+
+    <ng-template #lockCell let-row>
+      <app-status-indicator
+        [label]="row.isLocked ? 'ปิดงวดแล้ว' : 'ยังไม่ปิดงวด'"
+        [tone]="row.isLocked ? 'success' : 'warning'"
+      />
+    </ng-template>
+  </app-state-container>
+
+  <app-slide-drawer
+    [isOpen]="selectedPayslip() !== null"
+    [title]="'สลิปเงินเดือนงวด ' + (selectedPayslip()?.periodCode ?? '')"
+    [subtitle]="selectedPayslip() ? selectedPayslip()!.employeeCode + ' · ' + selectedPayslip()!.employeeName : null"
+    size="lg"
+    (closed)="selectedPayslip.set(null)"
+  >
+    @if (selectedPayslip(); as slip) {
+      <div class="drawer-form">
+        <div class="detail-grid">
+          <div class="detail-item">
+            <span class="detail-label">รายได้รวม (Gross)</span>
+            <span class="detail-value tabular-nums">{{ formatMoney(slip.grossIncome) }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">รายการหักรวม</span>
+            <span class="detail-value tabular-nums">{{ formatMoney(slip.totalDeductions) }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">ประกันสังคม (SSO)</span>
+            <span class="detail-value tabular-nums">{{ formatMoney(slip.ssoEmployeeAmount) }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">ภาษีหัก ณ ที่จ่าย</span>
+            <span class="detail-value tabular-nums">{{ formatMoney(slip.withholdingTaxAmount) }}</span>
+          </div>
+        </div>
+
+        <div class="surface-card kpi-card">
+          <span class="kpi-label">ยอดรับสุทธิ (Net Pay)</span>
+          <strong class="kpi-value tabular-nums">{{ formatMoney(slip.netPay) }}</strong>
+        </div>
+
+        <div class="table-scroll">
+          <table class="slip-items-table">
+            <thead>
+              <tr>
+                <th>รายการรับ / รายการหัก</th>
+                <th class="align-right">หน่วย</th>
+                <th class="align-right">จำนวนเงิน (บาท)</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (item of slip.items; track item.id) {
+                <tr>
+                  <td>{{ item.componentName }}</td>
+                  <td class="align-right tabular-nums">{{ item.units ?? '-' }}</td>
+                  <td class="align-right tabular-nums">{{ formatMoney(item.amount) }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <div class="drawer-actions">
+          <button type="button" class="btn-secondary focus-ring" (click)="selectedPayslip.set(null)">
+            ปิด
+          </button>
+          <button type="button" class="btn-primary focus-ring" (click)="printPayslip()">
+            พิมพ์ / บันทึก PDF
+          </button>
+        </div>
+      </div>
+    }
+  </app-slide-drawer>
+</div>

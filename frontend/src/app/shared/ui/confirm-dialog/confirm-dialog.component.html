@@ -1,0 +1,41 @@
+@if (isOpen()) {
+  <div class="dialog-overlay" (click)="onCancel()">
+    <section
+      class="dialog-card"
+      role="alertdialog"
+      aria-modal="true"
+      [attr.aria-label]="title()"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="dialog-body">
+        <h2 class="dialog-title">{{ title() }}</h2>
+        <p class="dialog-message">{{ message() }}</p>
+        <div class="dialog-extra">
+          <ng-content />
+        </div>
+      </div>
+
+      <footer class="dialog-footer">
+        <button
+          type="button"
+          class="btn-secondary focus-ring"
+          [disabled]="isSubmitting()"
+          (click)="onCancel()"
+        >
+          {{ cancelLabel() }}
+        </button>
+
+        <button
+          type="button"
+          class="focus-ring"
+          [class.btn-primary]="tone() === 'primary'"
+          [class.btn-danger]="tone() === 'danger'"
+          [disabled]="isSubmitting()"
+          (click)="onConfirm()"
+        >
+          {{ isSubmitting() ? 'กำลังดำเนินการ...' : confirmLabel() }}
+        </button>
+      </footer>
+    </section>
+  </div>
+}

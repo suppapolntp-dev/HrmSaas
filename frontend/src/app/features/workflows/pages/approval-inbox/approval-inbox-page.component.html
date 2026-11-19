@@ -1,0 +1,136 @@
+<div class="page-stack">
+  <header class="page-header">
+    <div class="page-heading">
+      <h1 class="page-title">กล่องอนุมัติคำขอ</h1>
+      <p class="page-subtitle">พิจารณาคำขอลา ขอทำ OT และขอแก้ไขเวลาทำงานตามสายอนุมัติ</p>
+    </div>
+  </header>
+
+  @if (feedbackSuccess(); as msg) {
+    <div class="feedback-banner is-success" role="status">
+      <span>{{ msg }}</span>
+      <button type="button" class="btn-secondary focus-ring" (click)="feedbackSuccess.set(null)">ปิด</button>
+    </div>
+  }
+
+  <nav class="tab-strip" aria-label="สลับรายการรออนุมัติและประวัติ">
+    <button
+      type="button"
+      class="tab-btn focus-ring"
+      [class.is-active]="activeTab() === 'PENDING'"
+      (click)="activeTab.set('PENDING'); page.set(1)"
+    >
+      รออนุมัติโดยฉัน ({{ pendingItems().length }})
+    </button>
+    <button
+      type="button"
+      class="tab-btn focus-ring"
+      [class.is-active]="activeTab() === 'HISTORY'"
+      (click)="activeTab.set('HISTORY'); page.set(1)"
+    >
+      ประวัติการพิจารณา ({{ historyItems().length }})
+    </button>
+  </nav>
+
+  <app-state-container
+    [isLoading]="isLoading()"
+    [isEmpty]="(activeTab() === 'PENDING' ? pendingItems().length : historyItems().length) === 0"
+    [errorMessage]="errorMessage()"
+    errorTitle="ไม่สามารถโหลดกล่องอนุมัติได้"
+    [emptyTitle]="activeTab() === 'PENDING' ? 'ไม่มีคำขอค้างพิจารณาในขณะนี้' : 'ยังไม่มีประวัติการพิจารณา'"
+    emptyDescription="รายการใหม่จะปรากฏที่นี่ทันทีเมื่อพนักงานยื่นคำขอเข้ามา"
+    [skeletonRows]="5"
+    (retry)="loadInbox()"
+  >
+    <app-data-table
+      [title]="activeTab() === 'PENDING' ? 'รายการที่รอคุณตัดสินใจ' : 'ประวัติคำขอที่พิจารณาแล้ว'"
+      [searchable]="true"
+      searchPlaceholder="ค้นหาชื่อผู้ขอ รหัส หรือรายละเอียด..."
+      [searchQuery]="searchQuery()"
+      [columns]="columns"
+      [rows]="pagedRows()"
+      [actions]="activeTab() === 'PENDING' ? pendingActions : []"
+      [sortBy]="sortBy()"
+      [sortDirection]="sortDirection()"
+      [page]="page()"
+      [pageSize]="pageSize()"
+      [totalCount]="activeRows().length"
+      [cellTemplates]="{
+        submittedAt: subCell,
+        requestType: typeCell,
+        payloadSummary: payloadCell,
+        status: statusCell
+      }"
+      (searchChange)="searchQuery.set($event); page.set(1)"
+      (sortChange)="onSortChange($event)"
+      (pageChange)="page.set($event)"
+      (pageSizeChange)="pageSize.set($event); page.set(1)"
+    >
+      <div slot-filters class="filter-controls">
+        <label class="filter-field">
+          <span class="filter-label">ประเภทคำขอ</span>
+          <select
+            class="filter-input focus-ring"
+            [value]="requestTypeFilter()"
+            (change)="requestTypeFilter.set($any($event.target).value); page.set(1)"
+          >
+            <option value="">ทุกประเภท</option>
+            <option value="LEAVE">ขอลา</option>
+            <option value="OVERTIME">ขอทำ OT</option>
+            <option value="TIME_ADJUSTMENT">ขอแก้ไขเวลา</option>
+          </select>
+        </label>
+      </div>
+    </app-data-table>
+
+    <ng-template #subCell let-row><span class="tabular-nums">{{ formatDateTime(row.submittedAt) }}</span></ng-template>
+    <ng-template #typeCell let-row><span>{{ formatType(row.requestType) }}</span></ng-template>
+    <ng-template #payloadCell let-row><span>{{ formatPayload(row.payloadSummary) }}</span></ng-template>
+    <ng-template #statusCell let-row>
+      <app-status-indicator [label]="getStatusLabel(row.status)" [tone]="getStatusTone(row.status)" />
+    </ng-template>
+  </app-state-container>
+
+  <app-slide-drawer
+    [isOpen]="decidingItem() !== null"
+    [title]="decidingAction() === 'APPROVE' ? 'ยืนยันการอนุมัติคำขอ' : 'ปฏิเสธคำขอ'"
+    [subtitle]="decidingItem() ? decidingItem()!.requesterFullName + ' · ' + formatType(decidingItem()!.requestType) : null"
+    (closed)="decidingItem.set(null)"
+  >
+    @if (decidingItem(); as target) {
+      <form class="drawer-form" [formGroup]="decideForm" (ngSubmit)="submitDecision()">
+        @if (decideError(); as errMsg) {
+          <div class="feedback-banner is-error" role="alert">{{ errMsg }}</div>
+        }
+        <div class="detail-item">
+          <span class="detail-label">รายละเอียดคำขอ</span>
+          <span class="detail-value">{{ formatPayload(target.payloadSummary) }}</span>
+        </div>
+        <app-form-field
+          label="ความเห็น / เหตุผล"
+          forId="dec-comment"
+          [required]="decidingAction() === 'REJECT'"
+          [control]="decideForm.controls.comment"
+        >
+          <textarea
+            id="dec-comment"
+            rows="4"
+            class="form-control focus-ring"
+            formControlName="comment"
+            placeholder="ระบุหมายเหตุเพิ่มเติม..."
+          ></textarea>
+        </app-form-field>
+        <div class="drawer-actions">
+          <button type="button" class="btn-secondary focus-ring" (click)="decidingItem.set(null)">ยกเลิก</button>
+          <button
+            type="submit"
+            [class]="decidingAction() === 'REJECT' ? 'btn-danger focus-ring' : 'btn-primary focus-ring'"
+            [disabled]="isSubmitting()"
+          >
+            {{ decidingAction() === 'APPROVE' ? 'ยืนยันอนุมัติ' : 'ยืนยันปฏิเสธ' }}
+          </button>
+        </div>
+      </form>
+    }
+  </app-slide-drawer>
+</div>

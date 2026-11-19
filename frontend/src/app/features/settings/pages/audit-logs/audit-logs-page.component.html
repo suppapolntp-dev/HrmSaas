@@ -1,0 +1,94 @@
+<div class="page-stack">
+  <header class="page-header">
+    <div class="page-heading">
+      <h1 class="page-title">ประวัติการใช้งาน (Audit Logs)</h1>
+      <p class="page-subtitle">ตรวจสอบการเปลี่ยนแปลงข้อมูลสำคัญ พร้อมเปรียบเทียบค่าก่อนและหลังการแก้ไข</p>
+    </div>
+  </header>
+
+  <app-state-container
+    [isLoading]="isLoading()"
+    [isEmpty]="logs().length === 0"
+    [errorMessage]="errorMessage()"
+    errorTitle="ไม่สามารถโหลด Audit Logs ได้"
+    emptyTitle="ไม่พบบันทึกประวัติการใช้งาน"
+    emptyDescription="ลองเปลี่ยนตัวกรอง Entity หรือ Action ด้านบน"
+    [skeletonRows]="6"
+    (retry)="loadLogs()"
+  >
+    <app-data-table
+      title="บันทึกการเปลี่ยนแปลงข้อมูล (Immutable Audit Trail)"
+      [columns]="columns"
+      [rows]="logs()"
+      [actions]="tableActions"
+      [clickableRows]="true"
+      [showSortDropdown]="false"
+      [page]="page()"
+      [pageSize]="pageSize()"
+      [totalCount]="totalCount()"
+      [cellTemplates]="{ occurredAt: timeCell }"
+      (pageChange)="onPageChange($event)"
+      (pageSizeChange)="onPageSizeChange($event)"
+      (rowClick)="selectedLog.set($event)"
+    >
+      <div slot-filters class="filter-controls">
+        <label class="filter-field">
+          <span class="filter-label">Entity</span>
+          <input
+            type="text"
+            class="filter-input focus-ring"
+            [value]="entityFilter()"
+            (change)="entityFilter.set($any($event.target).value); onFilterChange()"
+            placeholder="เช่น Employee, Role..."
+          />
+        </label>
+        <label class="filter-field">
+          <span class="filter-label">Action</span>
+          <select
+            class="filter-input focus-ring"
+            [value]="actionFilter()"
+            (change)="actionFilter.set($any($event.target).value); onFilterChange()"
+          >
+            <option value="">ทุกการกระทำ</option>
+            <option value="INSERT">INSERT</option>
+            <option value="UPDATE">UPDATE</option>
+            <option value="DELETE">DELETE</option>
+          </select>
+        </label>
+      </div>
+    </app-data-table>
+
+    <ng-template #timeCell let-row><span class="tabular-nums">{{ formatDateTime(row.occurredAt) }}</span></ng-template>
+  </app-state-container>
+
+  <app-slide-drawer
+    [isOpen]="selectedLog() !== null"
+    [title]="'รายละเอียด Audit · ' + (selectedLog()?.entityName ?? '')"
+    [subtitle]="selectedLog() ? selectedLog()!.action + ' · ' + formatDateTime(selectedLog()!.occurredAt) : null"
+    size="lg"
+    (closed)="selectedLog.set(null)"
+  >
+    @if (selectedLog(); as log) {
+      <div class="drawer-form">
+        <div class="detail-grid">
+          <div class="detail-item">
+            <span class="detail-label">Entity ID</span>
+            <span class="detail-value font-mono">{{ log.entityId }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">IP Address</span>
+            <span class="detail-value font-mono">{{ log.ipAddress || '-' }}</span>
+          </div>
+        </div>
+        <div>
+          <p class="detail-label">ค่าเดิม (Old Values)</p>
+          <pre class="mono-pre">{{ formatJsonSnapshot(log.oldValues) }}</pre>
+        </div>
+        <div>
+          <p class="detail-label">ค่าใหม่ (New Values)</p>
+          <pre class="mono-pre">{{ formatJsonSnapshot(log.newValues) }}</pre>
+        </div>
+      </div>
+    }
+  </app-slide-drawer>
+</div>

@@ -1,0 +1,60 @@
+:host {
+  display: block;
+}
+
+.role-list-card,
+.matrix-card {
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.role-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.role-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--surface-card);
+  color: var(--text-primary);
+  cursor: pointer;
+  text-align: left;
+}
+
+.role-item.is-active {
+  border-color: var(--border-focus);
+  background-color: var(--surface-selected);
+}
+
+.role-name {
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-medium);
+}
+
+.role-meta {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.module-groups,
+.perm-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.module-title {
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+  text-transform: uppercase;
+}

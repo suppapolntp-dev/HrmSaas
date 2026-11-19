@@ -1,0 +1,85 @@
+<section class="surface-card payroll-card" aria-label="ความพร้อมงวดเงินเดือนล่าสุด">
+  <header class="card-header">
+    <div class="header-text">
+      <div class="title-row">
+        <h2 class="section-title">ความพร้อมงวดเงินเดือน</h2>
+        @if (readiness().status) {
+          <app-status-indicator
+            [label]="getStatusLabel(readiness().status)"
+            [tone]="getStatusTone(readiness().status)"
+          />
+        }
+      </div>
+      <p class="section-subtitle tabular-nums">
+        @if (readiness().periodCode) {
+          งวด <span class="font-mono">{{ readiness().periodCode }}</span> · ตัดรอบ {{ formatDate(readiness().attendanceCutoffDate) }}
+        } @else {
+          ยังไม่มีงวดเงินเดือนในระบบ
+        }
+      </p>
+    </div>
+
+    <div class="header-actions">
+      @if (readiness().totalNetEstimate !== null) {
+        <button
+          type="button"
+          class="btn-secondary focus-ring"
+          (click)="toggleReveal()"
+          [attr.aria-pressed]="isRevealed()"
+        >
+          {{ isRevealed() ? 'ซ่อนยอดรวม' : 'แสดงยอดรวม' }}
+        </button>
+      }
+      <a
+        [routerLink]="readiness().periodId ? ['/payroll/run', readiness().periodId] : ['/payroll/periods']"
+        class="btn-secondary focus-ring link-btn"
+      >
+        จัดการงวดเงินเดือน
+      </a>
+    </div>
+  </header>
+
+  @if (readiness().periodId) {
+    <div class="cutoff-strip">
+      <div class="cutoff-cell">
+        <span class="cell-label">กำหนดตัดรอบเวลา</span>
+        <span class="cell-value tabular-nums">{{ formatCutoffCountdown(readiness().daysUntilCutoff) }}</span>
+      </div>
+      <div class="cutoff-cell">
+        <span class="cell-label">วันจ่ายเงินเดือน</span>
+        <span class="cell-value tabular-nums">{{ formatDate(readiness().payDate) }}</span>
+      </div>
+    </div>
+
+    <div class="checklist-block">
+      <h3 class="sub-heading">จุดค้างก่อนปิดงวด (Readiness Checklist)</h3>
+      <ul class="checklist">
+        <li class="check-item" [class.has-issue]="readiness().pendingApprovalsCount > 0">
+          <app-status-indicator
+            label="คำขอลา / OT / แก้เวลาที่รออนุมัติ"
+            [tone]="readiness().pendingApprovalsCount > 0 ? 'warning' : 'success'"
+          />
+          <span class="check-count tabular-nums">{{ readiness().pendingApprovalsCount }} รายการ</span>
+        </li>
+        <li class="check-item" [class.has-issue]="readiness().missingPunchCount > 0">
+          <app-status-indicator
+            label="รายการลืมลงเวลา (Missing Punch) ในงวด"
+            [tone]="readiness().missingPunchCount > 0 ? 'warning' : 'success'"
+          />
+          <span class="check-count tabular-nums">{{ readiness().missingPunchCount }} รายการ</span>
+        </li>
+      </ul>
+    </div>
+
+    <div class="estimate-grid">
+      <div class="estimate-cell">
+        <span class="cell-label">ประมาณการรายได้รวม (Gross)</span>
+        <span class="estimate-value tabular-nums">{{ formatAmount(readiness().totalGrossEstimate) }}</span>
+      </div>
+      <div class="estimate-cell">
+        <span class="cell-label">ประมาณการจ่ายสุทธิ (Net Pay)</span>
+        <span class="estimate-value tabular-nums">{{ formatAmount(readiness().totalNetEstimate) }}</span>
+      </div>
+    </div>
+  }
+</section>

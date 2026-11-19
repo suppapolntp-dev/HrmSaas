@@ -1,0 +1,283 @@
+<div class="attendance-page">
+  <header class="page-header">
+    <div class="page-heading">
+      <h1 class="page-title">เวลาทำงานของฉัน</h1>
+      <p class="page-subtitle">
+        ประวัติการลงเวลาเข้า-ออกงานรายวัน
+        @if (activeBranchName().length > 0) {
+          <span>· {{ activeBranchName() }}</span>
+        }
+      </p>
+    </div>
+
+    <div class="header-actions">
+      <a routerLink="/portal/dashboard" class="btn-secondary focus-ring link-btn">กลับแดชบอร์ด</a>
+      <button
+        type="button"
+        class="btn-primary focus-ring"
+        (click)="openAdjustmentDrawer(null)"
+      >
+        ยื่นคำขอแก้ไขเวลา
+      </button>
+    </div>
+  </header>
+
+  @if (adjustmentSuccess(); as successMsg) {
+    <div class="feedback-banner is-success" role="status">
+      <span>{{ successMsg }}</span>
+      <button
+        type="button"
+        class="btn-secondary focus-ring"
+        (click)="adjustmentSuccess.set(null)"
+      >
+        ปิด
+      </button>
+    </div>
+  }
+
+  @if (!isLoading() && !errorMessage() && records().length > 0) {
+    <section class="kpi-strip" aria-label="สรุปเวลาทำงานในช่วงที่เลือก">
+      <article class="surface-card kpi-card">
+        <span class="kpi-label">จำนวนวันที่มีข้อมูล</span>
+        <strong class="kpi-value tabular-nums">{{ summaryStats().totalDays }} วัน</strong>
+      </article>
+      <article class="surface-card kpi-card">
+        <span class="kpi-label">ชั่วโมงทำงานสะสม</span>
+        <strong class="kpi-value tabular-nums">{{ summaryStats().totalWorkedText }}</strong>
+      </article>
+      <article class="surface-card kpi-card">
+        <span class="kpi-label">มาสาย</span>
+        <strong class="kpi-value tabular-nums">{{ summaryStats().lateCount }} ครั้ง</strong>
+      </article>
+      <article class="surface-card kpi-card">
+        <span class="kpi-label">ลืมลงเวลา / ขาดงาน</span>
+        <strong class="kpi-value tabular-nums">{{ summaryStats().exceptionCount }} ครั้ง</strong>
+      </article>
+    </section>
+  }
+
+  <app-state-container
+    [isLoading]="isLoading()"
+    [isEmpty]="records().length === 0"
+    [errorMessage]="errorMessage()"
+    errorTitle="ไม่สามารถโหลดประวัติการลงเวลาได้"
+    emptyTitle="ยังไม่มีประวัติการลงเวลาในช่วงวันที่เลือก"
+    emptyDescription="ลองเปลี่ยนช่วงวันที่หรือตัวกรองสถานะด้านบน เพื่อดูข้อมูลย้อนหลัง"
+    [skeletonRows]="6"
+    (retry)="loadHistory()"
+  >
+    <app-data-table
+      title="บันทึกเวลาเข้า-ออกงานรายวัน"
+      subtitle="ตรวจสอบเวลาสแกนเข้า-ออก ชั่วโมงทำงาน และสถานะผิดปกติ"
+      [searchable]="true"
+      searchPlaceholder="ค้นหาวันที่ กะงาน หรือสถานะ..."
+      [searchQuery]="searchQuery()"
+      [columns]="columns"
+      [rows]="pagedRecords()"
+      [actions]="tableActions"
+      [rowAccentFn]="rowAccentFn"
+      [sortBy]="sortBy()"
+      [sortDirection]="sortDirection()"
+      [page]="page()"
+      [pageSize]="pageSize()"
+      [totalCount]="sortedRecords().length"
+      [cellTemplates]="{
+        workDate: workDateCell,
+        shiftName: shiftCell,
+        actualInUtc: inTimeCell,
+        actualOutUtc: outTimeCell,
+        workedMinutes: workedCell,
+        lateMinutes: lateCell,
+        attendanceStatus: statusCell
+      }"
+      (searchChange)="onSearchChange($event)"
+      (sortChange)="onSortChange($event)"
+      (pageChange)="onPageChange($event)"
+      (pageSizeChange)="onPageSizeChange($event)"
+    >
+      <div slot-filters class="filter-controls">
+        <label class="filter-field">
+          <span class="filter-label">ตั้งแต่</span>
+          <input
+            type="date"
+            class="filter-input focus-ring"
+            [value]="startDate()"
+            (change)="onStartDateChange($event)"
+          />
+        </label>
+        <label class="filter-field">
+          <span class="filter-label">ถึง</span>
+          <input
+            type="date"
+            class="filter-input focus-ring"
+            [value]="endDate()"
+            (change)="onEndDateChange($event)"
+          />
+        </label>
+        <label class="filter-field">
+          <span class="filter-label">สถานะ</span>
+          <select
+            class="filter-input focus-ring"
+            [value]="statusFilter()"
+            (change)="onStatusFilterChange($event)"
+          >
+            <option value="">ทุกสถานะ</option>
+            <option value="PRESENT">ปกติ</option>
+            <option value="LATE">มาสาย</option>
+            <option value="EARLY_OUT">ออกก่อน</option>
+            <option value="MISSING_PUNCH">ลืมลงเวลา</option>
+            <option value="ABSENT">ขาดงาน</option>
+            <option value="ON_LEAVE">วันลา</option>
+          </select>
+        </label>
+        <button
+          type="button"
+          class="btn-secondary focus-ring"
+          (click)="resetFilters()"
+        >
+          ล้างตัวกรอง
+        </button>
+      </div>
+    </app-data-table>
+
+    <ng-template #workDateCell let-row>
+      <span class="tabular-nums">{{ formatDate(row.workDate) }}</span>
+    </ng-template>
+
+    <ng-template #shiftCell let-row>
+      <span>{{ row.shiftName || 'ไม่ระบุกะ' }}</span>
+    </ng-template>
+
+    <ng-template #inTimeCell let-row>
+      <span class="font-mono tabular-nums">{{ formatTime(row.actualInUtc) }}</span>
+    </ng-template>
+
+    <ng-template #outTimeCell let-row>
+      <span class="font-mono tabular-nums">{{ formatTime(row.actualOutUtc) }}</span>
+    </ng-template>
+
+    <ng-template #workedCell let-row>
+      <span class="tabular-nums">{{ formatDuration(row.workedMinutes) }}</span>
+    </ng-template>
+
+    <ng-template #lateCell let-row>
+      @if (row.lateMinutes > 0 || row.earlyOutMinutes > 0) {
+        <span class="tabular-nums text-warning">
+          @if (row.lateMinutes > 0) {
+            สาย {{ row.lateMinutes }} น.
+          }
+          @if (row.lateMinutes > 0 && row.earlyOutMinutes > 0) {
+            ·
+          }
+          @if (row.earlyOutMinutes > 0) {
+            ออกก่อน {{ row.earlyOutMinutes }} น.
+          }
+        </span>
+      } @else {
+        <span class="text-muted">-</span>
+      }
+    </ng-template>
+
+    <ng-template #statusCell let-row>
+      <app-status-indicator
+        [label]="getStatusLabel(row.attendanceStatus)"
+        [tone]="getStatusTone(row.attendanceStatus)"
+      />
+    </ng-template>
+  </app-state-container>
+
+  <app-slide-drawer
+    [isOpen]="isDrawerOpen()"
+    title="ยื่นคำขอแก้ไขเวลาทำงาน"
+    subtitle="คำขอจะถูกส่งเข้าสายอนุมัติของหัวหน้างานและ HR"
+    (closed)="closeDrawer()"
+  >
+    <form class="drawer-form" [formGroup]="adjustmentForm" (ngSubmit)="submitTimeAdjustment()">
+      @if (adjustmentError(); as formErr) {
+        <div class="feedback-banner is-error" role="alert">{{ formErr }}</div>
+      }
+
+      <app-form-field
+        label="วันที่ต้องการแก้ไข"
+        forId="adj-work-date"
+        [required]="true"
+        [control]="adjustmentForm.controls.workDate"
+      >
+        <input
+          id="adj-work-date"
+          type="date"
+          class="form-control focus-ring"
+          formControlName="workDate"
+        />
+      </app-form-field>
+
+      <div class="time-pair-grid">
+        <app-form-field
+          label="เวลาเข้างานที่ขอแก้ไข"
+          forId="adj-in-time"
+          [required]="true"
+          [control]="adjustmentForm.controls.requestedInTime"
+        >
+          <input
+            id="adj-in-time"
+            type="time"
+            class="form-control focus-ring"
+            formControlName="requestedInTime"
+          />
+        </app-form-field>
+
+        <app-form-field
+          label="เวลาออกงานที่ขอแก้ไข"
+          forId="adj-out-time"
+          [required]="true"
+          [control]="adjustmentForm.controls.requestedOutTime"
+        >
+          <input
+            id="adj-out-time"
+            type="time"
+            class="form-control focus-ring"
+            formControlName="requestedOutTime"
+          />
+        </app-form-field>
+      </div>
+
+      <app-form-field
+        label="เหตุผลการแก้ไขเวลา"
+        forId="adj-reason"
+        [required]="true"
+        hint="ระบุสาเหตุให้ชัดเจน เช่น ลืมสแกนนิ้ว หรือออกไปพบลูกค้า"
+        [control]="adjustmentForm.controls.reason"
+      >
+        <textarea
+          id="adj-reason"
+          rows="4"
+          class="form-control focus-ring"
+          formControlName="reason"
+          placeholder="เช่น ลืมกดเช็กเอาท์ตอนเลิกงาน..."
+        ></textarea>
+      </app-form-field>
+
+      <div class="drawer-actions">
+        <button
+          type="button"
+          class="btn-secondary focus-ring"
+          (click)="closeDrawer()"
+          [disabled]="isSubmittingAdjustment()"
+        >
+          ยกเลิก
+        </button>
+        <button
+          type="submit"
+          class="btn-primary focus-ring"
+          [disabled]="isSubmittingAdjustment()"
+        >
+          @if (isSubmittingAdjustment()) {
+            กำลังส่งคำขอ...
+          } @else {
+            ส่งคำขอแก้ไขเวลา
+          }
+        </button>
+      </div>
+    </form>
+  </app-slide-drawer>
+</div>

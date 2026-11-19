@@ -1,0 +1,78 @@
+<section class="surface-card hr-card" aria-label="ภาพรวมบุคลากรและแจ้งเตือนอายุงาน">
+  <header class="card-header">
+    <div class="header-text">
+      <h2 class="section-title">ภาพรวมบุคลากร (Workforce)</h2>
+      <p class="section-subtitle">จำนวนพนักงานปัจจุบันและการแจ้งเตือนครบกำหนดใน 30 วัน</p>
+    </div>
+
+    <a routerLink="/employees/list" class="btn-secondary focus-ring link-btn">
+      รายชื่อพนักงาน
+    </a>
+  </header>
+
+  <div class="headcount-strip">
+    <div class="stat-cell">
+      <span class="stat-label">พนักงานรวมทั้งหมด</span>
+      <span class="stat-value tabular-nums">{{ totalHeadcount() }}</span>
+    </div>
+    <div class="stat-cell">
+      <app-status-indicator label="ปฏิบัติงาน (Active)" tone="success" />
+      <span class="stat-value tabular-nums">{{ overview().activeCount }}</span>
+    </div>
+    <div class="stat-cell">
+      <app-status-indicator label="ทดลองงาน (Probation)" tone="info" />
+      <span class="stat-value tabular-nums">{{ overview().probationCount }}</span>
+    </div>
+    <div class="stat-cell">
+      <span class="stat-label">รับเข้าใหม่เดือนนี้</span>
+      <span class="stat-value tabular-nums">+{{ overview().newHiresThisMonthCount }}</span>
+    </div>
+  </div>
+
+  <div class="hr-columns">
+    <div class="hr-column">
+      <h3 class="sub-heading">สัดส่วนตามแผนก</h3>
+      @if (overview().departmentBreakdown.length === 0) {
+        <p class="empty-inline">ยังไม่มีข้อมูลพนักงานในแผนก</p>
+      } @else {
+        <div class="dept-list">
+          @for (dept of overview().departmentBreakdown; track dept.departmentId) {
+            <div class="dept-row">
+              <div class="dept-top">
+                <span class="dept-name">{{ dept.departmentName }}</span>
+                <span class="dept-count tabular-nums">{{ getDeptTotal(dept) }} คน</span>
+              </div>
+              <div class="bar-track" aria-hidden="true">
+                <div class="bar-fill" [style.width.%]="getDeptBarPercent(dept)"></div>
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+    <div class="hr-column">
+      <h3 class="sub-heading">แจ้งเตือน 30 วันข้างหน้า ({{ overview().lifecycleAlerts.length }})</h3>
+      @if (overview().lifecycleAlerts.length === 0) {
+        <p class="empty-inline">ไม่มีพนักงานใกล้ครบกำหนดทดลองงานหรือหมดสัญญาในช่วง 30 วันนี้</p>
+      } @else {
+        <ul class="alert-list">
+          @for (alert of overview().lifecycleAlerts; track alert.employeeId + '-' + alert.alertType) {
+            <li class="alert-item" [class.is-urgent]="alert.daysRemaining <= 7">
+              <div class="alert-main">
+                <a [routerLink]="['/employees', alert.employeeId]" class="alert-link focus-ring">
+                  {{ alert.employeeName }}
+                </a>
+                <span class="emp-code font-mono tabular-nums">{{ alert.employeeCode }}</span>
+              </div>
+              <div class="alert-meta tabular-nums">
+                <span>{{ getAlertLabel(alert.alertType) }} · {{ formatDueDate(alert.dueDate) }}</span>
+                <span class="days-left">อีก {{ alert.daysRemaining }} วัน</span>
+              </div>
+            </li>
+          }
+        </ul>
+      }
+    </div>
+  </div>
+</section>

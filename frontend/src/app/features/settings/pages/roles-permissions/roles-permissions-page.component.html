@@ -1,0 +1,113 @@
+<div class="page-stack">
+  <header class="page-header">
+    <div class="page-heading">
+      <h1 class="page-title">บทบาทและสิทธิ์ (RBAC)</h1>
+      <p class="page-subtitle">จัดการ Permission Matrix แบบ Dynamic ตามโมดูลโดยไม่ Hardcode ชื่อ Role</p>
+    </div>
+
+    <div class="header-actions">
+      <button type="button" class="btn-primary focus-ring" (click)="openCreateDrawer()">
+        สร้างบทบาทใหม่
+      </button>
+    </div>
+  </header>
+
+  @if (feedbackSuccess(); as msg) {
+    <div class="feedback-banner is-success" role="status">
+      <span>{{ msg }}</span>
+      <button type="button" class="btn-secondary focus-ring" (click)="feedbackSuccess.set(null)">ปิด</button>
+    </div>
+  }
+
+  <app-state-container
+    [isLoading]="isLoading()"
+    [isEmpty]="roles().length === 0"
+    [errorMessage]="errorMessage()"
+    errorTitle="ไม่สามารถโหลดข้อมูลบทบาทและสิทธิ์ได้"
+    emptyTitle="ยังไม่มีข้อมูลบทบาท"
+    [skeletonRows]="6"
+    (retry)="loadRbac()"
+  >
+    <div class="split-grid">
+      <aside class="surface-card role-list-card">
+        <h2 class="section-title">รายการบทบาท ({{ roles().length }})</h2>
+        <div class="role-list">
+          @for (role of roles(); track role.id) {
+            <button
+              type="button"
+              class="role-item focus-ring"
+              [class.is-active]="selectedRoleId() === role.id"
+              (click)="selectRole(role)"
+            >
+              <span class="role-name">{{ role.name }}</span>
+              <span class="role-meta font-mono">{{ role.code }} · {{ role.permissionCodes.length }} สิทธิ์</span>
+            </button>
+          }
+        </div>
+      </aside>
+
+      <section class="surface-card matrix-card">
+        @if (selectedRole(); as role) {
+          <div class="card-header">
+            <div class="header-text">
+              <h2 class="section-title">{{ role.name }} ({{ role.code }})</h2>
+              <p class="section-subtitle">เลือกสิทธิ์ที่อนุญาตให้บทบาทนี้ใช้งานในระบบ</p>
+            </div>
+            <button
+              type="button"
+              class="btn-primary focus-ring"
+              (click)="saveSelectedRole()"
+              [disabled]="isSavingRole()"
+            >
+              @if (isSavingRole()) { กำลังบันทึก... } @else { บันทึกสิทธิ์ }
+            </button>
+          </div>
+
+          <div class="module-groups">
+            @for (grp of permissionGroups(); track grp.module) {
+              <div class="step-card">
+                <strong class="module-title">{{ grp.module }}</strong>
+                <div class="perm-grid">
+                  @for (perm of grp.permissions; track perm.id) {
+                    <label class="checkbox-row">
+                      <input
+                        type="checkbox"
+                        [checked]="hasDraftPermission(perm.code)"
+                        (change)="toggleDraftPermission(perm.code)"
+                      />
+                      <span>
+                        <code class="font-mono">{{ perm.code }}</code> — {{ perm.description }}
+                      </span>
+                    </label>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </section>
+    </div>
+  </app-state-container>
+
+  <app-slide-drawer
+    [isOpen]="isCreateDrawerOpen()"
+    title="สร้างบทบาทใหม่"
+    (closed)="isCreateDrawerOpen.set(false)"
+  >
+    <form class="drawer-form" [formGroup]="createRoleForm" (ngSubmit)="submitCreateRole()">
+      @if (createError(); as errMsg) {
+        <div class="feedback-banner is-error" role="alert">{{ errMsg }}</div>
+      }
+      <app-form-field label="รหัสบทบาท" forId="rb-code" [required]="true" [control]="createRoleForm.controls.code">
+        <input id="rb-code" type="text" class="form-control focus-ring" formControlName="code" placeholder="SUPERVISOR" />
+      </app-form-field>
+      <app-form-field label="ชื่อบทบาท" forId="rb-name" [required]="true" [control]="createRoleForm.controls.name">
+        <input id="rb-name" type="text" class="form-control focus-ring" formControlName="name" />
+      </app-form-field>
+      <div class="drawer-actions">
+        <button type="button" class="btn-secondary focus-ring" (click)="isCreateDrawerOpen.set(false)">ยกเลิก</button>
+        <button type="submit" class="btn-primary focus-ring" [disabled]="isCreating()">สร้างบทบาท</button>
+      </div>
+    </form>
+  </app-slide-drawer>
+</div>

@@ -1,0 +1,53 @@
+<section class="surface-card approvals-card" aria-label="รายการคำขอรออนุมัติ">
+  <header class="card-header">
+    <div class="header-text">
+      <h2 class="section-title">รายการคำขอรออนุมัติ ({{ approvals().length }})</h2>
+      <p class="section-subtitle">คำขอลา ขอทำ OT และขอแก้ไขเวลาที่รอการพิจารณาของคุณ</p>
+    </div>
+
+    <a routerLink="/workflows/inbox" class="btn-secondary focus-ring link-btn">
+      เปิดกล่องอนุมัติ
+    </a>
+  </header>
+
+  <ul class="approval-list">
+    @for (item of approvals(); track item.id) {
+      <li class="approval-item">
+        <div class="approval-content">
+          <div class="approval-top">
+            <app-status-indicator [label]="getRequestTypeLabel(item.requestType)" tone="warning" />
+            <span class="step-label tabular-nums">ขั้นตอนที่ {{ item.currentStepOrder }}</span>
+            <span class="submitted-at tabular-nums">{{ formatSubmittedAt(item.submittedAt) }}</span>
+          </div>
+
+          <div class="requester-line">
+            <span class="requester-name">{{ item.requesterFullName }}</span>
+            <span class="requester-code font-mono tabular-nums">{{ item.requesterEmployeeCode }}</span>
+          </div>
+
+          <p class="approval-summary">{{ getSummaryText(item.payloadSummary) }}</p>
+        </div>
+
+        <div class="approval-actions">
+          <button
+            type="button"
+            class="btn-danger focus-ring"
+            [disabled]="submittingRequestId() === item.id"
+            (click)="onReject(item)"
+          >
+            ไม่อนุมัติ
+          </button>
+
+          <button
+            type="button"
+            class="btn-primary focus-ring"
+            [disabled]="submittingRequestId() === item.id"
+            (click)="onApprove(item)"
+          >
+            {{ submittingRequestId() === item.id ? 'กำลังบันทึก...' : 'อนุมัติ' }}
+          </button>
+        </div>
+      </li>
+    }
+  </ul>
+</section>

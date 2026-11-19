@@ -1,0 +1,37 @@
+@if (isOpen()) {
+  <div class="drawer-overlay" (click)="onBackdropClick()">
+    <section
+      class="drawer-panel"
+      [class.drawer-panel-lg]="size() === 'lg'"
+      role="dialog"
+      aria-modal="true"
+      [attr.aria-label]="title()"
+      (click)="$event.stopPropagation()"
+    >
+      <header class="drawer-header">
+        <div class="drawer-heading">
+          <h2 class="drawer-title">{{ title() }}</h2>
+          @if (subtitle()) {
+            <p class="drawer-subtitle">{{ subtitle() }}</p>
+          }
+        </div>
+        <button
+          type="button"
+          class="btn-secondary focus-ring drawer-close-btn"
+          aria-label="ปิดหน้าต่างรายละเอียด"
+          (click)="onClose()"
+        >
+          ปิด
+        </button>
+      </header>
+
+      <div class="drawer-body">
+        <ng-content />
+      </div>
+
+      <footer class="drawer-footer">
+        <ng-content select="[slot-footer]" />
+      </footer>
+    </section>
+  </div>
+}

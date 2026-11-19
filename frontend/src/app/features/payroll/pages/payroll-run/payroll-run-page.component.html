@@ -1,0 +1,140 @@
+<div class="page-stack">
+  <header class="page-header">
+    <div class="page-heading">
+      <h1 class="page-title">
+        คำนวณเงินเดือนประจำงวด
+        @if (currentPeriod(); as period) {
+          <span class="font-mono">({{ period.periodCode }})</span>
+        }
+      </h1>
+      <p class="page-subtitle">
+        คำนวณรายได้ ประกันสังคม ภาษีหัก ณ ที่จ่าย และตรวจสอบสลิปก่อนปิดงวด
+        @if (currentPeriod(); as period) {
+          · <app-status-indicator [label]="getPeriodStatusLabel(period.status)" [tone]="getPeriodStatusTone(period.status)" />
+        }
+      </p>
+    </div>
+
+    <div class="header-actions">
+      <a routerLink="/payroll/periods" class="btn-secondary focus-ring link-btn">กลับหน้างวดเงินเดือน</a>
+      @if (!isPeriodLocked()) {
+        <button type="button" class="btn-primary focus-ring" (click)="calculatePayroll()" [disabled]="isCalculating()">
+          @if (isCalculating()) { กำลังคำนวณ... } @else { คำนวณเงินเดือน }
+        </button>
+        @if (payslips().length > 0) {
+          <button type="button" class="btn-danger focus-ring" (click)="isLockDialogOpen.set(true)">
+            ล็อกงวด (Lock)
+          </button>
+        }
+      }
+    </div>
+  </header>
+
+  @if (feedbackSuccess(); as msg) {
+    <div class="feedback-banner is-success" role="status">
+      <span>{{ msg }}</span>
+      <button type="button" class="btn-secondary focus-ring" (click)="feedbackSuccess.set(null)">ปิด</button>
+    </div>
+  }
+
+  @if (!isLoading() && !errorMessage() && payslips().length > 0) {
+    <section class="kpi-strip" aria-label="สรุปยอดรวมงวดเงินเดือน">
+      <article class="surface-card kpi-card">
+        <span class="kpi-label">จำนวนพนักงานในงวด</span>
+        <strong class="kpi-value tabular-nums">{{ totals().count }} คน</strong>
+      </article>
+      <article class="surface-card kpi-card">
+        <span class="kpi-label">รายได้รวมทั้งงวด</span>
+        <strong class="kpi-value tabular-nums">{{ totals().grossText }}</strong>
+      </article>
+      <article class="surface-card kpi-card">
+        <span class="kpi-label">ประกันสังคม + ภาษี</span>
+        <strong class="kpi-value tabular-nums">{{ totals().ssoAndTaxText }}</strong>
+      </article>
+      <article class="surface-card kpi-card">
+        <span class="kpi-label">ยอดจ่ายสุทธิรวม</span>
+        <strong class="kpi-value tabular-nums">{{ totals().netText }}</strong>
+      </article>
+    </section>
+  }
+
+  <app-state-container
+    [isLoading]="isLoading()"
+    [isEmpty]="payslips().length === 0"
+    [errorMessage]="errorMessage()"
+    errorTitle="ไม่สามารถโหลดข้อมูลเงินเดือนงวดนี้ได้"
+    emptyTitle="ยังไม่มีผลการคำนวณในงวดนี้"
+    emptyDescription="กดปุ่ม คำนวณเงินเดือน ด้านบนเพื่อประมวลผลเงินเดือน ประกันสังคม และภาษี"
+    [skeletonRows]="6"
+    (retry)="loadRunData()"
+  >
+    <app-data-table
+      title="ตารางสรุปเงินเดือนรายบุคคล"
+      [searchable]="true"
+      searchPlaceholder="ค้นหารหัสหรือชื่อพนักงาน..."
+      [searchQuery]="searchQuery()"
+      [columns]="columns"
+      [rows]="filteredPayslips()"
+      [actions]="tableActions"
+      [clickableRows]="true"
+      [showSortDropdown]="false"
+      [page]="page()"
+      [pageSize]="pageSize()"
+      [totalCount]="filteredPayslips().length"
+      [cellTemplates]="{
+        grossIncome: grossCell,
+        ssoEmployeeAmount: ssoCell,
+        withholdingTaxAmount: taxCell,
+        totalDeductions: dedCell,
+        netPay: netCell,
+        isLocked: lockCell
+      }"
+      (searchChange)="searchQuery.set($event); page.set(1)"
+      (pageChange)="page.set($event)"
+      (pageSizeChange)="pageSize.set($event); page.set(1)"
+      (rowClick)="selectedPayslip.set($event)"
+    />
+
+    <ng-template #grossCell let-row><span class="tabular-nums">{{ formatMoney(row.grossIncome) }}</span></ng-template>
+    <ng-template #ssoCell let-row><span class="tabular-nums">{{ formatMoney(row.ssoEmployeeAmount) }}</span></ng-template>
+    <ng-template #taxCell let-row><span class="tabular-nums">{{ formatMoney(row.withholdingTaxAmount) }}</span></ng-template>
+    <ng-template #dedCell let-row><span class="tabular-nums">{{ formatMoney(row.totalDeductions) }}</span></ng-template>
+    <ng-template #netCell let-row><strong class="tabular-nums">{{ formatMoney(row.netPay) }}</strong></ng-template>
+    <ng-template #lockCell let-row>
+      <app-status-indicator [label]="row.isLocked ? 'ล็อกแล้ว' : 'รอตรวจสอบ'" [tone]="row.isLocked ? 'success' : 'warning'" />
+    </ng-template>
+  </app-state-container>
+
+  <app-slide-drawer
+    [isOpen]="selectedPayslip() !== null"
+    [title]="'รายละเอียดสลิป · ' + (selectedPayslip()?.employeeName ?? '')"
+    [subtitle]="selectedPayslip()?.employeeCode ?? null"
+    (closed)="selectedPayslip.set(null)"
+  >
+    @if (selectedPayslip(); as slip) {
+      <div class="drawer-form">
+        @for (item of slip.items; track item.id) {
+          <div class="detail-item">
+            <span class="detail-label">{{ item.componentName }}</span>
+            <span class="detail-value tabular-nums">{{ formatMoney(item.amount) }}</span>
+          </div>
+        }
+        <div class="surface-card kpi-card">
+          <span class="kpi-label">ยอดรับสุทธิ</span>
+          <strong class="kpi-value tabular-nums">{{ formatMoney(slip.netPay) }}</strong>
+        </div>
+      </div>
+    }
+  </app-slide-drawer>
+
+  <app-confirm-dialog
+    [isOpen]="isLockDialogOpen()"
+    title="ยืนยันการล็อกงวดเงินเดือน"
+    message="เมื่อล็อกงวดแล้วจะไม่สามารถคำนวณซ้ำหรือแก้ไขบันทึกเวลาในงวดนี้ได้อีก ต้องการดำเนินการต่อหรือไม่?"
+    confirmLabel="ยืนยันล็อกงวด"
+    tone="danger"
+    [isSubmitting]="isLocking()"
+    (confirmed)="confirmLockPeriod()"
+    (cancelled)="isLockDialogOpen.set(false)"
+  />
+</div>

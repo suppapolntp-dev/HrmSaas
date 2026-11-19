@@ -1,0 +1,32 @@
+<section class="surface-card requests-card" aria-label="คำขอล่าสุดของฉัน">
+  <header class="card-header">
+    <div class="header-text">
+      <h2 class="section-title">คำขอล่าสุดของฉัน</h2>
+      <p class="section-subtitle">ติดตามสถานะใบลา ขอทำ OT และขอแก้ไขเวลาที่ยื่นไว้</p>
+    </div>
+
+    <a routerLink="/portal/leaves" class="btn-secondary focus-ring link-btn">
+      จัดการใบลา
+    </a>
+  </header>
+
+  <ul class="request-list">
+    @for (item of requests(); track item.id) {
+      <li class="request-item" [class.is-pending]="item.status === 'PENDING'">
+        <div class="request-top">
+          <div class="request-meta">
+            <span class="request-type">{{ getTypeLabel(item.requestType) }}</span>
+            <span class="step-text tabular-nums">ขั้นตอนที่ {{ item.currentStepOrder }}</span>
+          </div>
+          <app-status-indicator
+            [label]="getStatusLabel(item.status)"
+            [tone]="getStatusTone(item.status)"
+          />
+        </div>
+
+        <p class="request-summary">{{ getSummary(item.payloadSummary) }}</p>
+        <span class="submitted-at tabular-nums">ยื่นเมื่อ {{ formatSubmittedAt(item.submittedAt) }}</span>
+      </li>
+    }
+  </ul>
+</section>

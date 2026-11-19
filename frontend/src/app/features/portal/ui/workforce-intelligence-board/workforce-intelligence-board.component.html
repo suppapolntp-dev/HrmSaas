@@ -1,0 +1,411 @@
+<div class="wp-board">
+  <!-- TOP + MIDDLE ASYMMETRIC 2-COLUMN LAYOUT (~73% Left / ~27% Right) -->
+  <div class="wp-main-grid">
+    <!-- LEFT COLUMN: 3 KPI Cards + Attendance/Workforce Summary Chart Card -->
+    <div class="wp-left-col">
+      <!-- 3 Equal-Width KPI Cards -->
+      <section class="wp-kpi-row" aria-label="ตัวชี้วัดหลักระดับองค์กร">
+        @if (hrOverview(); as hr) {
+          <article class="surface-card wp-kpi-card">
+            <div class="kpi-head">
+              <span class="kpi-icon-box" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="9" cy="8" r="3.5"/><path stroke-linecap="round" d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.5"/><path stroke-linecap="round" d="M21 20c0-2.5-1.8-4.5-4-5"/></svg>
+              </span>
+              <span class="kpi-title">บุคลากรทั้งหมด</span>
+            </div>
+            <div class="kpi-value-row">
+              <span class="kpi-value tabular-nums">{{ totalHeadcount() }}</span>
+              <span class="kpi-sub-unit">คน</span>
+            </div>
+            <div class="kpi-footer tabular-nums">
+              <span class="kpi-foot-muted">ประจำ {{ hr.activeCount }} · โปร {{ hr.probationCount }}</span>
+              <span class="kpi-trend-up">+{{ hr.newHiresThisMonthCount }} เดือนนี้</span>
+            </div>
+          </article>
+        }
+
+        <article class="surface-card wp-kpi-card">
+          <div class="kpi-head">
+            <span class="kpi-icon-box" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4h16l2 10v6H2v-6L4 4Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2 14h6l2 3h4l2-3h6"/></svg>
+            </span>
+            <span class="kpi-title">คำขอและเคสวันนี้</span>
+          </div>
+          <div class="kpi-value-row">
+            <span class="kpi-value tabular-nums">{{ pendingApprovals().length + totalExceptionsCount() }}</span>
+            <span class="kpi-sub-unit">รายการ</span>
+          </div>
+          <div class="kpi-footer tabular-nums">
+            <span class="kpi-foot-muted">รออนุมัติ {{ pendingApprovals().length }}</span>
+            <span [class.kpi-trend-warn]="totalExceptionsCount() > 0" [class.kpi-trend-up]="totalExceptionsCount() === 0">
+              ผิดปกติ {{ totalExceptionsCount() }}
+            </span>
+          </div>
+        </article>
+
+        @if (teamPulse(); as pulse) {
+          <article class="surface-card wp-kpi-card">
+            <div class="kpi-head">
+              <span class="kpi-icon-box" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="12" cy="12" r="9"/><path stroke-linecap="round" d="M12 7v5l3 2"/></svg>
+              </span>
+              <span class="kpi-title">อัตราเข้างานวันนี้</span>
+            </div>
+            <div class="kpi-value-row">
+              <span class="kpi-value tabular-nums">{{ attendanceRatePercent() }}%</span>
+              <span class="kpi-sub-unit tabular-nums">/ 100%</span>
+            </div>
+            <div class="kpi-footer tabular-nums">
+              <span class="kpi-foot-muted">มา {{ pulse.presentCount + pulse.lateCount }} / {{ pulse.totalScheduledCount }} กะ</span>
+              <span class="kpi-trend-info">ลา {{ pulse.onLeaveCount }} คน</span>
+            </div>
+          </article>
+        }
+      </section>
+
+      <!-- Attendance & Workforce Summary Card -->
+      <section class="surface-card wp-summary-card" aria-label="สรุปเวลาทำงานและโครงสร้างบุคลากร">
+        <header class="card-header">
+          <div class="card-title-group">
+            <span class="kpi-icon-box" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path stroke-linecap="round" d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>
+            </span>
+            <div>
+              <h2 class="section-title">สรุปเวลาทำงานและแผนก (Attendance & Workforce)</h2>
+              <p class="section-subtitle">สัดส่วนการเข้างานวันนี้และการกระจายตัวพนักงานตามหน่วยงาน</p>
+            </div>
+          </div>
+          <a routerLink="/attendance/daily-logs" class="detail-link focus-ring">ดูรายละเอียด →</a>
+        </header>
+
+        @if (teamPulse(); as pulse) {
+          <div class="summary-metrics-bar">
+            <div class="sub-metric-group">
+              <div class="sub-metric">
+                <span class="sub-metric-val tabular-nums">{{ attendanceRatePercent() }}%</span>
+                <span class="sub-metric-label">Presence Rate</span>
+              </div>
+              <div class="sub-metric">
+                <span class="sub-metric-val tabular-nums">
+                  {{ pulse.presentCount + pulse.lateCount }}
+                  <span class="sub-metric-den">/{{ pulse.totalScheduledCount }}</span>
+                </span>
+                <span class="sub-metric-label">เข้างานวันนี้</span>
+              </div>
+            </div>
+
+            <div class="legend-row tabular-nums">
+              <app-status-indicator [label]="'มาปกติ ' + onTimeRatePercent() + '%'" tone="success" />
+              <app-status-indicator [label]="'มาสาย ' + lateRatePercent() + '%'" tone="warning" />
+              <app-status-indicator [label]="'ลา/ขาด ' + absenceRatePercent() + '%'" tone="danger" />
+            </div>
+          </div>
+        }
+
+        @if (departmentChartPoints().length > 0) {
+          <div class="dept-chart-area">
+            @for (dept of departmentChartPoints(); track dept.departmentId) {
+              <div class="dept-chart-row">
+                <div class="dept-chart-label">
+                  <span class="dept-name">{{ dept.departmentName }}</span>
+                  <span class="dept-meta tabular-nums">
+                    ประจำ {{ dept.activeCount }} · โปร {{ dept.probationCount }} ({{ dept.percent }}%)
+                  </span>
+                </div>
+                <div class="dept-bar-track" aria-hidden="true">
+                  <div class="dept-bar-fill" [style.width.%]="dept.percent"></div>
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </section>
+    </div>
+
+    <!-- RIGHT COLUMN: 2 Stacked Cards (Payroll Priority + Work Calendar & Alerts) -->
+    <aside class="wp-right-col" aria-label="รอบเงินเดือนและปฏิทินแจ้งเตือน">
+      @if (payrollReadiness(); as payroll) {
+        <article class="surface-card wp-priority-card">
+          <div class="priority-head">
+            <span class="kpi-icon-box" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="2" y="5" width="20" height="14" rx="2"/><path stroke-linecap="round" d="M16 12h6M2 9h20"/></svg>
+            </span>
+            <div class="priority-title-wrap">
+              <h2 class="section-title">งวดเงินเดือนล่าสุด</h2>
+              @if (payroll.status) {
+                <app-status-indicator
+                  [label]="getPayrollStatusLabel(payroll.status)"
+                  [tone]="getPayrollStatusTone(payroll.status)"
+                />
+              }
+            </div>
+          </div>
+
+          <div class="priority-body">
+            <div class="priority-period tabular-nums">
+              {{ payroll.periodCode || 'ยังไม่มีงวดเงินเดือน' }}
+            </div>
+            <p class="priority-sub tabular-nums">
+              @if (payroll.periodId) {
+                ตัดรอบ {{ formatDate(payroll.attendanceCutoffDate) }} ({{ formatCutoffDays(payroll.daysUntilCutoff) }})
+              } @else {
+                สร้างงวดใหม่เพื่อเริ่มคำนวณเงินเดือน
+              }
+            </p>
+          </div>
+
+          <div class="priority-amount-box">
+            <div class="amount-head">
+              <span class="amount-label">ประมาณการจ่ายสุทธิ</span>
+              <button
+                type="button"
+                class="reveal-btn focus-ring"
+                (click)="togglePayrollAmount()"
+              >
+                {{ isPayrollAmountRevealed() ? 'ซ่อน' : 'แสดง' }}
+              </button>
+            </div>
+            <div class="amount-val tabular-nums">{{ formatMaskedAmount(payroll.totalNetEstimate) }}</div>
+          </div>
+
+          <a
+            [routerLink]="payroll.periodId ? ['/payroll/run', payroll.periodId] : ['/payroll/periods']"
+            class="btn-primary focus-ring priority-cta"
+          >
+            จัดการงวดเงินเดือน
+          </a>
+        </article>
+      }
+
+      <article class="surface-card wp-calendar-card">
+        <header class="card-header">
+          <div class="card-title-group">
+            <span class="kpi-icon-box" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="3" y="4" width="18" height="17" rx="2"/><path stroke-linecap="round" d="M16 2v4M8 2v4M3 10h18"/></svg>
+            </span>
+            <h2 class="section-title">ปฏิทิน & แจ้งเตือน 30 วัน</h2>
+          </div>
+        </header>
+
+        <div class="week-strip" aria-label="ปฏิทินสัปดาห์นี้">
+          @for (day of weekDaysStrip(); track day.dayNum + day.dayName) {
+            <div class="week-day" [class.is-today]="day.isToday">
+              <span class="week-day-name">{{ day.dayName }}</span>
+              <span class="week-day-num tabular-nums">{{ day.dayNum }}</span>
+            </div>
+          }
+        </div>
+
+        @if (hrOverview(); as hr) {
+          @if (hr.lifecycleAlerts.length === 0) {
+            <p class="empty-inline">ไม่มีรายการครบโปรหรือหมดสัญญาใน 30 วัน</p>
+          } @else {
+            <ul class="calendar-events">
+              @for (alert of hr.lifecycleAlerts.slice(0, 3); track alert.employeeId + '-' + alert.alertType) {
+                <li class="calendar-event" [class.is-urgent]="alert.daysRemaining <= 7">
+                  <div class="event-top">
+                    <a [routerLink]="['/employees', alert.employeeId]" class="event-link focus-ring">
+                      {{ alert.employeeName }}
+                    </a>
+                    <span class="event-days tabular-nums">อีก {{ alert.daysRemaining }} วัน</span>
+                  </div>
+                  <span class="event-meta tabular-nums">
+                    {{ getAlertLabel(alert.alertType) }} · {{ formatDate(alert.dueDate) }}
+                  </span>
+                </li>
+              }
+            </ul>
+          }
+        }
+      </article>
+    </aside>
+  </div>
+
+  <!-- BOTTOM FULL-WIDTH ACTIONABLE TABLE (Work Assignment / Attendance / Approvals) -->
+  <section class="surface-card wp-table-card" aria-label="ตารางติดตามสถานะและคำขอ">
+    <header class="card-header">
+      <div class="card-title-group">
+        <span class="kpi-icon-box" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="5" y="4" width="14" height="17" rx="2"/><path stroke-linecap="round" d="M9 4V2h6v2"/><path stroke-linecap="round" stroke-linejoin="round" d="m9 13 2 2 4-4"/></svg>
+        </span>
+        <div>
+          <h2 class="section-title">รายการติดตามงานและสถานะทีม (Work Assignment)</h2>
+          <p class="section-subtitle">สลับดูบันทึกเวลาผิดปกติ คำขอรออนุมัติ และรายการครบกำหนด</p>
+        </div>
+      </div>
+
+      <a routerLink="/attendance/daily-logs" class="detail-link focus-ring">ดูทั้งหมด →</a>
+    </header>
+
+    <div class="table-toolbar">
+      <div class="segmented-tabs" role="tablist" aria-label="หมวดตารางติดตามงาน">
+        <button
+          type="button"
+          role="tab"
+          class="seg-tab focus-ring"
+          [class.is-active]="activeBottomTab() === 'ATTENDANCE'"
+          (click)="setBottomTab('ATTENDANCE')"
+        >
+          เวลาทำงาน ({{ filteredAttendanceRows().length }})
+        </button>
+        <button
+          type="button"
+          role="tab"
+          class="seg-tab focus-ring"
+          [class.is-active]="activeBottomTab() === 'APPROVALS'"
+          (click)="setBottomTab('APPROVALS')"
+        >
+          รออนุมัติ ({{ pendingApprovals().length }})
+        </button>
+        <button
+          type="button"
+          role="tab"
+          class="seg-tab focus-ring"
+          [class.is-active]="activeBottomTab() === 'ALERTS'"
+          (click)="setBottomTab('ALERTS')"
+        >
+          ครบกำหนด 30 วัน ({{ hrOverview()?.lifecycleAlerts?.length ?? 0 }})
+        </button>
+      </div>
+
+      @if (activeBottomTab() === 'ATTENDANCE') {
+        <div class="filter-group" role="group" aria-label="กรองสถานะเวลาทำงาน">
+          <button
+            type="button"
+            class="filter-btn focus-ring"
+            [class.is-active]="activeAttendanceFilter() === 'ALL'"
+            (click)="setAttendanceFilter('ALL')"
+          >
+            ทั้งหมด
+          </button>
+          <button
+            type="button"
+            class="filter-btn focus-ring"
+            [class.is-active]="activeAttendanceFilter() === 'EXCEPTIONS'"
+            (click)="setAttendanceFilter('EXCEPTIONS')"
+          >
+            ผิดปกติ
+          </button>
+          <button
+            type="button"
+            class="filter-btn focus-ring"
+            [class.is-active]="activeAttendanceFilter() === 'ON_LEAVE'"
+            (click)="setAttendanceFilter('ON_LEAVE')"
+          >
+            ลางาน
+          </button>
+        </div>
+      }
+    </div>
+
+    @if (activeBottomTab() === 'ATTENDANCE') {
+      @if (filteredAttendanceRows().length === 0) {
+        <p class="empty-inline">ไม่พบรายการผิดปกติหรือการลางานในวันนี้</p>
+      } @else {
+        <div class="table-scroll">
+          <table class="wp-table">
+            <thead>
+              <tr>
+                <th scope="col" class="col-left">รหัสพนักงาน</th>
+                <th scope="col" class="col-left">ชื่อพนักงาน</th>
+                <th scope="col" class="col-left">แผนก / หมวด</th>
+                <th scope="col" class="col-left">เวลาเข้าจริง</th>
+                <th scope="col" class="col-left">สถานะ</th>
+                <th scope="col" class="col-right">รายละเอียด</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of filteredAttendanceRows(); track row.employeeId + '-' + row.status) {
+                <tr
+                  class="wp-row"
+                  [class.row-danger]="row.severity === 'danger'"
+                  [class.row-warning]="row.severity === 'warning'"
+                  [class.row-info]="row.severity === 'info'"
+                >
+                  <td class="col-left font-mono tabular-nums">{{ row.employeeCode }}</td>
+                  <td class="col-left emp-strong">
+                    <a [routerLink]="['/employees', row.employeeId]" class="event-link focus-ring">
+                      {{ row.employeeName }}
+                    </a>
+                  </td>
+                  <td class="col-left text-muted">{{ row.contextLabel }}</td>
+                  <td class="col-left tabular-nums">{{ row.checkInText }}</td>
+                  <td class="col-left">
+                    <app-status-indicator [label]="row.statusLabel" [tone]="row.statusTone" />
+                  </td>
+                  <td class="col-right tabular-nums">{{ row.detailText }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    } @else if (activeBottomTab() === 'APPROVALS') {
+      @if (pendingApprovals().length === 0) {
+        <p class="empty-inline">ไม่มีคำขอรออนุมัติในขณะนี้</p>
+      } @else {
+        <div class="table-scroll">
+          <table class="wp-table">
+            <thead>
+              <tr>
+                <th scope="col" class="col-left">รหัส</th>
+                <th scope="col" class="col-left">ผู้ยื่นคำขอ</th>
+                <th scope="col" class="col-left">ประเภท</th>
+                <th scope="col" class="col-left">รายละเอียด</th>
+                <th scope="col" class="col-left">สถานะ</th>
+                <th scope="col" class="col-right">ยื่นเมื่อ</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (item of pendingApprovals(); track item.id) {
+                <tr class="wp-row row-warning">
+                  <td class="col-left font-mono tabular-nums">{{ item.requesterEmployeeCode }}</td>
+                  <td class="col-left emp-strong">{{ item.requesterFullName }}</td>
+                  <td class="col-left">{{ getRequestTypeLabel(item.requestType) }}</td>
+                  <td class="col-left text-muted">{{ getRequestSummary(item.payloadSummary) }}</td>
+                  <td class="col-left">
+                    <app-status-indicator [label]="'รออนุมัติ (ขั้น ' + item.currentStepOrder + ')'" tone="warning" />
+                  </td>
+                  <td class="col-right tabular-nums">{{ formatSubmittedAt(item.submittedAt) }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    } @else {
+      @if ((hrOverview()?.lifecycleAlerts?.length ?? 0) === 0) {
+        <p class="empty-inline">ไม่มีรายการครบกำหนดทดลองงานหรือหมดสัญญาใน 30 วันข้างหน้า</p>
+      } @else {
+        <div class="table-scroll">
+          <table class="wp-table">
+            <thead>
+              <tr>
+                <th scope="col" class="col-left">รหัส</th>
+                <th scope="col" class="col-left">พนักงาน</th>
+                <th scope="col" class="col-left">ประเภทแจ้งเตือน</th>
+                <th scope="col" class="col-left">วันครบกำหนด</th>
+                <th scope="col" class="col-right">คงเหลือ</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (alert of hrOverview()!.lifecycleAlerts; track alert.employeeId + '-' + alert.alertType) {
+                <tr class="wp-row" [class.row-warning]="alert.daysRemaining <= 7" [class.row-info]="alert.daysRemaining > 7">
+                  <td class="col-left font-mono tabular-nums">{{ alert.employeeCode }}</td>
+                  <td class="col-left emp-strong">
+                    <a [routerLink]="['/employees', alert.employeeId]" class="event-link focus-ring">
+                      {{ alert.employeeName }}
+                    </a>
+                  </td>
+                  <td class="col-left">{{ getAlertLabel(alert.alertType) }}</td>
+                  <td class="col-left tabular-nums">{{ formatDate(alert.dueDate) }}</td>
+                  <td class="col-right tabular-nums">อีก {{ alert.daysRemaining }} วัน</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    }
+  </section>
+</div>

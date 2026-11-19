@@ -1,0 +1,281 @@
+<div class="page-stack">
+  <header class="page-header">
+    <div class="page-heading">
+      <h1 class="page-title">
+        @if (employee(); as emp) {
+          {{ emp.firstName }} {{ emp.lastName }}
+        } @else {
+          โปรไฟล์พนักงาน 360
+        }
+      </h1>
+      <p class="page-subtitle">
+        @if (employee(); as emp) {
+          <span class="font-mono">{{ emp.employeeCode }}</span> · {{ emp.positionTitle }} · {{ emp.departmentName }}
+        } @else {
+          ข้อมูลสัญญาจ้าง สายบังคับบัญชา และสิทธิ์วันลา
+        }
+      </p>
+    </div>
+
+    <div class="header-actions">
+      <a routerLink="/employees/list" class="btn-secondary focus-ring link-btn">กลับรายชื่อพนักงาน</a>
+      @if (employee()) {
+        <button *appHasPermission="'employee.update'" type="button" class="btn-primary focus-ring" (click)="openEditDrawer()">
+          แก้ไขข้อมูลพนักงาน
+        </button>
+      }
+    </div>
+  </header>
+
+  @if (feedbackSuccess(); as msg) {
+    <div class="feedback-banner is-success" role="status">
+      <span>{{ msg }}</span>
+      <button type="button" class="btn-secondary focus-ring" (click)="feedbackSuccess.set(null)">ปิด</button>
+    </div>
+  }
+
+  <app-state-container
+    [isLoading]="isLoading()"
+    [isEmpty]="employee() === null"
+    [errorMessage]="errorMessage()"
+    errorTitle="ไม่สามารถโหลดโปรไฟล์พนักงานได้"
+    emptyTitle="ไม่พบข้อมูลพนักงาน"
+    [skeletonRows]="6"
+    (retry)="loadDetail()"
+  >
+    @if (employee(); as emp) {
+      <nav class="tab-strip" aria-label="หมวดข้อมูลพนักงาน 360">
+        <button type="button" class="tab-btn focus-ring" [class.is-active]="activeTab() === 'PROFILE'" (click)="activeTab.set('PROFILE')">
+          ข้อมูลพื้นฐาน
+        </button>
+        <button type="button" class="tab-btn focus-ring" [class.is-active]="activeTab() === 'CONTRACTS'" (click)="activeTab.set('CONTRACTS')">
+          สัญญาจ้าง ({{ emp.contracts.length }})
+        </button>
+        <button type="button" class="tab-btn focus-ring" [class.is-active]="activeTab() === 'REPORTING'" (click)="activeTab.set('REPORTING')">
+          สายบังคับบัญชา ({{ emp.reportingLines.length }})
+        </button>
+        <button type="button" class="tab-btn focus-ring" [class.is-active]="activeTab() === 'LEAVES'" (click)="activeTab.set('LEAVES')">
+          โควตาวันลา ({{ emp.leaveBalances.length }})
+        </button>
+      </nav>
+
+      @if (activeTab() === 'PROFILE') {
+        <section class="surface-card profile-card">
+          <div class="detail-grid">
+            <div class="detail-item">
+              <span class="detail-label">รหัสพนักงาน</span>
+              <span class="detail-value font-mono">{{ emp.employeeCode }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">สถานะการทำงาน</span>
+              <app-status-indicator [label]="getStatusLabel(emp.employmentStatus)" [tone]="getStatusTone(emp.employmentStatus)" />
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">สาขา</span>
+              <span class="detail-value">{{ emp.branchName }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">แผนก</span>
+              <span class="detail-value">{{ emp.departmentName }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">ตำแหน่ง</span>
+              <span class="detail-value">{{ emp.positionTitle }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">ระดับพนักงาน</span>
+              <span class="detail-value">{{ emp.jobGradeName }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">วันเริ่มงาน</span>
+              <span class="detail-value tabular-nums">{{ formatDate(emp.hireDate) }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">วันครบกำหนดทดลองงาน</span>
+              <span class="detail-value tabular-nums">{{ formatDate(emp.probationEndDate) }}</span>
+            </div>
+          </div>
+        </section>
+      } @else if (activeTab() === 'CONTRACTS') {
+        <app-data-table
+          title="ประวัติสัญญาจ้างและฐานเงินเดือน"
+          [columns]="contractColumns"
+          [rows]="emp.contracts"
+          [showPagination]="false"
+          [showSortDropdown]="false"
+          [cellTemplates]="{ effectiveFrom: dateCell, baseSalary: salaryCell, isActive: activeCell }"
+        >
+          <button
+            *appHasPermission="'employee.update'"
+            slot-header-actions
+            type="button"
+            class="btn-primary focus-ring"
+            (click)="openContractDrawer()"
+          >
+            เพิ่มสัญญาจ้างใหม่
+          </button>
+        </app-data-table>
+
+        <ng-template #dateCell let-row>
+          <span class="tabular-nums">{{ formatDate(row.effectiveFrom) }}</span>
+        </ng-template>
+        <ng-template #salaryCell let-row>
+          <span class="tabular-nums">{{ formatMoney(row.baseSalary) }}</span>
+        </ng-template>
+        <ng-template #activeCell let-row>
+          <app-status-indicator [label]="row.isActive ? 'มีผลบังคับใช้' : 'สิ้นสุดแล้ว'" [tone]="row.isActive ? 'success' : 'neutral'" />
+        </ng-template>
+      } @else if (activeTab() === 'REPORTING') {
+        <app-data-table
+          title="สายบังคับบัญชาและการอนุมัติ"
+          [columns]="reportingColumns"
+          [rows]="emp.reportingLines"
+          [showPagination]="false"
+          [showSortDropdown]="false"
+          [cellTemplates]="{ effectiveFrom: repDateCell }"
+        >
+          <button
+            *appHasPermission="'employee.update'"
+            slot-header-actions
+            type="button"
+            class="btn-primary focus-ring"
+            (click)="openReportingDrawer()"
+          >
+            กำหนดหัวหน้างาน
+          </button>
+        </app-data-table>
+        <ng-template #repDateCell let-row>
+          <span class="tabular-nums">{{ formatDate(row.effectiveFrom) }}</span>
+        </ng-template>
+      } @else {
+        <app-data-table
+          title="สรุปโควตาวันลาประจำปี"
+          [columns]="leaveColumns"
+          [rows]="emp.leaveBalances"
+          [showPagination]="false"
+          [showSortDropdown]="false"
+        />
+      }
+    }
+  </app-state-container>
+
+  <app-slide-drawer [isOpen]="isEditDrawerOpen()" title="แก้ไขข้อมูลพนักงาน" (closed)="isEditDrawerOpen.set(false)">
+    <form class="drawer-form" [formGroup]="editForm" (ngSubmit)="submitEdit()">
+      @if (formError(); as errMsg) {
+        <div class="feedback-banner is-error" role="alert">{{ errMsg }}</div>
+      }
+      <div class="form-grid-2">
+        <app-form-field label="ชื่อ" forId="ed-fn" [required]="true" [control]="editForm.controls.firstName">
+          <input id="ed-fn" type="text" class="form-control focus-ring" formControlName="firstName" />
+        </app-form-field>
+        <app-form-field label="นามสกุล" forId="ed-ln" [required]="true" [control]="editForm.controls.lastName">
+          <input id="ed-ln" type="text" class="form-control focus-ring" formControlName="lastName" />
+        </app-form-field>
+      </div>
+      <app-form-field label="สาขา" forId="ed-br" [required]="true" [control]="editForm.controls.branchId">
+        <select id="ed-br" class="form-control focus-ring" formControlName="branchId">
+          @for (b of branches(); track b.id) { <option [value]="b.id">{{ b.name }}</option> }
+        </select>
+      </app-form-field>
+      <app-form-field label="แผนก" forId="ed-dept" [required]="true" [control]="editForm.controls.departmentId">
+        <select id="ed-dept" class="form-control focus-ring" formControlName="departmentId">
+          @for (d of departments(); track d.id) { <option [value]="d.id">{{ d.name }}</option> }
+        </select>
+      </app-form-field>
+      <app-form-field label="ตำแหน่ง" forId="ed-pos" [required]="true" [control]="editForm.controls.positionId">
+        <select id="ed-pos" class="form-control focus-ring" formControlName="positionId">
+          @for (p of positions(); track p.id) { <option [value]="p.id">{{ p.title }}</option> }
+        </select>
+      </app-form-field>
+      <app-form-field label="ระดับพนักงาน" forId="ed-grade" [required]="true" [control]="editForm.controls.jobGradeId">
+        <select id="ed-grade" class="form-control focus-ring" formControlName="jobGradeId">
+          @for (g of jobGrades(); track g.id) { <option [value]="g.id">{{ g.name }}</option> }
+        </select>
+      </app-form-field>
+      <app-form-field label="สถานะการทำงาน" forId="ed-status" [required]="true" [control]="editForm.controls.employmentStatus">
+        <select id="ed-status" class="form-control focus-ring" formControlName="employmentStatus">
+          <option value="ACTIVE">ปฏิบัติงาน</option>
+          <option value="PROBATION">ทดลองงาน</option>
+          <option value="SUSPENDED">พักงาน</option>
+          <option value="RESIGNED">ลาออก</option>
+          <option value="TERMINATED">พ้นสภาพ</option>
+        </select>
+      </app-form-field>
+      <div class="drawer-actions">
+        <button type="button" class="btn-secondary focus-ring" (click)="isEditDrawerOpen.set(false)">ยกเลิก</button>
+        <button type="submit" class="btn-primary focus-ring" [disabled]="isSubmitting()">บันทึกการเปลี่ยนแปลง</button>
+      </div>
+    </form>
+  </app-slide-drawer>
+
+  <app-slide-drawer [isOpen]="isContractDrawerOpen()" title="สร้างสัญญาจ้างใหม่" (closed)="isContractDrawerOpen.set(false)">
+    <form class="drawer-form" [formGroup]="contractForm" (ngSubmit)="submitContract()">
+      @if (formError(); as errMsg) {
+        <div class="feedback-banner is-error" role="alert">{{ errMsg }}</div>
+      }
+      <app-form-field label="ประเภทสัญญา" forId="ct-type" [required]="true" [control]="contractForm.controls.contractType">
+        <select id="ct-type" class="form-control focus-ring" formControlName="contractType">
+          <option value="PERMANENT">พนักงานประจำ</option>
+          <option value="PROBATION">ทดลองงาน</option>
+          <option value="CONTRACT">สัญญาจ้างชั่วคราว</option>
+        </select>
+      </app-form-field>
+      <div class="form-grid-2">
+        <app-form-field label="วันที่มีผล" forId="ct-from" [required]="true" [control]="contractForm.controls.effectiveFrom">
+          <input id="ct-from" type="date" class="form-control focus-ring" formControlName="effectiveFrom" />
+        </app-form-field>
+        <app-form-field label="วันสิ้นสุด (ถ้ามี)" forId="ct-to" [control]="contractForm.controls.effectiveTo">
+          <input id="ct-to" type="date" class="form-control focus-ring" formControlName="effectiveTo" />
+        </app-form-field>
+      </div>
+      <div class="form-grid-2">
+        <app-form-field label="ฐานเงินเดือน (บาท)" forId="ct-sal" [required]="true" [control]="contractForm.controls.baseSalary">
+          <input id="ct-sal" type="number" class="form-control focus-ring" formControlName="baseSalary" />
+        </app-form-field>
+        <app-form-field label="รอบจ่าย" forId="ct-cycle" [required]="true" [control]="contractForm.controls.paymentCycle">
+          <select id="ct-cycle" class="form-control focus-ring" formControlName="paymentCycle">
+            <option value="MONTHLY">รายเดือน</option>
+            <option value="BIWEEKLY">รายปักษ์</option>
+          </select>
+        </app-form-field>
+      </div>
+      <div class="drawer-actions">
+        <button type="button" class="btn-secondary focus-ring" (click)="isContractDrawerOpen.set(false)">ยกเลิก</button>
+        <button type="submit" class="btn-primary focus-ring" [disabled]="isSubmitting()">บันทึกสัญญาจ้าง</button>
+      </div>
+    </form>
+  </app-slide-drawer>
+
+  <app-slide-drawer [isOpen]="isReportingDrawerOpen()" title="กำหนดสายบังคับบัญชา" (closed)="isReportingDrawerOpen.set(false)">
+    <form class="drawer-form" [formGroup]="reportingForm" (ngSubmit)="submitReporting()">
+      @if (formError(); as errMsg) {
+        <div class="feedback-banner is-error" role="alert">{{ errMsg }}</div>
+      }
+      <app-form-field label="หัวหน้างาน" forId="rep-mgr" [required]="true" [control]="reportingForm.controls.managerEmployeeId">
+        <select id="rep-mgr" class="form-control focus-ring" formControlName="managerEmployeeId">
+          <option value="" disabled>เลือกหัวหน้างาน</option>
+          @for (item of allEmployees(); track item.id) {
+            @if (item.id !== employee()?.id) {
+              <option [value]="item.id">{{ item.employeeCode }} · {{ item.firstName }} {{ item.lastName }}</option>
+            }
+          }
+        </select>
+      </app-form-field>
+      <div class="form-grid-2">
+        <app-form-field label="ประเภทสายงาน" forId="rep-type" [required]="true" [control]="reportingForm.controls.lineType">
+          <select id="rep-type" class="form-control focus-ring" formControlName="lineType">
+            <option value="DIRECT">สายตรง (Direct)</option>
+            <option value="SECONDARY">สายรอง (Secondary)</option>
+          </select>
+        </app-form-field>
+        <app-form-field label="วันที่มีผล" forId="rep-from" [required]="true" [control]="reportingForm.controls.effectiveFrom">
+          <input id="rep-from" type="date" class="form-control focus-ring" formControlName="effectiveFrom" />
+        </app-form-field>
+      </div>
+      <div class="drawer-actions">
+        <button type="button" class="btn-secondary focus-ring" (click)="isReportingDrawerOpen.set(false)">ยกเลิก</button>
+        <button type="submit" class="btn-primary focus-ring" [disabled]="isSubmitting()">บันทึกสายบังคับบัญชา</button>
+      </div>
+    </form>
+  </app-slide-drawer>
+</div>

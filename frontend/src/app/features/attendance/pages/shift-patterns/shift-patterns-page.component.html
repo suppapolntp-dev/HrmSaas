@@ -1,0 +1,122 @@
+<div class="page-stack">
+  <header class="page-header">
+    <div class="page-heading">
+      <h1 class="page-title">รูปแบบกะงาน</h1>
+      <p class="page-subtitle">ตั้งค่ากะปกติ กะข้ามคืน กะยืดหยุ่น เวลาพัก และเกณฑ์ผ่อนผันการสาย</p>
+    </div>
+    <div class="header-actions">
+      <button type="button" class="btn-primary focus-ring" (click)="openDrawer(null)">เพิ่มรูปแบบกะ</button>
+    </div>
+  </header>
+
+  @if (feedbackSuccess(); as msg) {
+    <div class="feedback-banner is-success" role="status">
+      <span>{{ msg }}</span>
+      <button type="button" class="btn-secondary focus-ring" (click)="feedbackSuccess.set(null)">ปิด</button>
+    </div>
+  }
+
+  <app-state-container
+    [isLoading]="isLoading()"
+    [isEmpty]="shifts().length === 0"
+    [errorMessage]="errorMessage()"
+    errorTitle="ไม่สามารถโหลดรูปแบบกะงานได้"
+    emptyTitle="ยังไม่มีรูปแบบกะงาน"
+    emptyDescription="กดปุ่ม เพิ่มรูปแบบกะ เพื่อตั้งค่าเวลาทำงานมาตรฐานของบริษัท"
+    [skeletonRows]="5"
+    (retry)="loadShifts()"
+  >
+    <app-data-table
+      title="รายการกะงานทั้งหมด"
+      [searchable]="true"
+      searchPlaceholder="ค้นหารหัสหรือชื่อกะ..."
+      [searchQuery]="searchQuery()"
+      [columns]="columns"
+      [rows]="filteredShifts()"
+      [actions]="tableActions"
+      [showSortDropdown]="false"
+      [page]="page()"
+      [pageSize]="pageSize()"
+      [totalCount]="filteredShifts().length"
+      [cellTemplates]="{ startTime: timeCell, isOvernight: overnightCell }"
+      (searchChange)="searchQuery.set($event); page.set(1)"
+      (pageChange)="page.set($event)"
+      (pageSizeChange)="pageSize.set($event); page.set(1)"
+    />
+
+    <ng-template #timeCell let-row>
+      <span class="font-mono tabular-nums">{{ formatWindow(row.startTime, row.endTime) }}</span>
+    </ng-template>
+    <ng-template #overnightCell let-row>
+      <app-status-indicator
+        [label]="row.isOvernight ? 'ข้ามคืน' : 'วันเดียว'"
+        [tone]="row.isOvernight ? 'info' : 'neutral'"
+      />
+    </ng-template>
+  </app-state-container>
+
+  <app-slide-drawer
+    [isOpen]="isDrawerOpen()"
+    [title]="editingShift() ? 'แก้ไขรูปแบบกะงาน' : 'สร้างรูปแบบกะงานใหม่'"
+    (closed)="isDrawerOpen.set(false)"
+  >
+    <form class="drawer-form" [formGroup]="shiftForm" (ngSubmit)="submitShift()">
+      @if (formError(); as errMsg) {
+        <div class="feedback-banner is-error" role="alert">{{ errMsg }}</div>
+      }
+      <div class="form-grid-2">
+        <app-form-field label="รหัสกะ" forId="sh-code" [required]="true" [control]="shiftForm.controls.code">
+          <input id="sh-code" type="text" class="form-control focus-ring" formControlName="code" />
+        </app-form-field>
+        <app-form-field label="ประเภทกะ" forId="sh-type" [required]="true" [control]="shiftForm.controls.shiftType">
+          <select id="sh-type" class="form-control focus-ring" formControlName="shiftType">
+            <option value="NORMAL">NORMAL (กะปกติ)</option>
+            <option value="OVERNIGHT">OVERNIGHT (กะข้ามคืน)</option>
+            <option value="FLEXIBLE">FLEXIBLE (กะยืดหยุ่น)</option>
+          </select>
+        </app-form-field>
+      </div>
+      <app-form-field label="ชื่อกะงาน" forId="sh-name" [required]="true" [control]="shiftForm.controls.name">
+        <input id="sh-name" type="text" class="form-control focus-ring" formControlName="name" />
+      </app-form-field>
+      <div class="form-grid-2">
+        <app-form-field label="เวลาเริ่มงาน" forId="sh-start" [required]="true" [control]="shiftForm.controls.startTime">
+          <input id="sh-start" type="time" class="form-control focus-ring" formControlName="startTime" />
+        </app-form-field>
+        <app-form-field label="เวลาเลิกงาน" forId="sh-end" [required]="true" [control]="shiftForm.controls.endTime">
+          <input id="sh-end" type="time" class="form-control focus-ring" formControlName="endTime" />
+        </app-form-field>
+      </div>
+      <label class="checkbox-row">
+        <input type="checkbox" formControlName="isOvernight" />
+        <span>เป็นกะข้ามคืน (เวลาเลิกงานอยู่ของวันถัดไป)</span>
+      </label>
+      <div class="form-grid-2">
+        <app-form-field label="ผ่อนผันสาย (นาที)" forId="sh-grace" [required]="true" [control]="shiftForm.controls.gracePeriodMinutes">
+          <input id="sh-grace" type="number" class="form-control focus-ring" formControlName="gracePeriodMinutes" />
+        </app-form-field>
+        <app-form-field label="นับว่าสายหลัง (นาที)" forId="sh-late" [required]="true" [control]="shiftForm.controls.lateAfterMinutes">
+          <input id="sh-late" type="number" class="form-control focus-ring" formControlName="lateAfterMinutes" />
+        </app-form-field>
+      </div>
+      <app-form-field label="ชั่วโมงทำงานมาตรฐาน (นาที)" forId="sh-std" [required]="true" [control]="shiftForm.controls.standardWorkMinutes">
+        <input id="sh-std" type="number" class="form-control focus-ring" formControlName="standardWorkMinutes" />
+      </app-form-field>
+      <div class="form-grid-2">
+        <app-form-field label="เริ่มพัก" forId="sh-bstart" [control]="shiftForm.controls.breakStart">
+          <input id="sh-bstart" type="time" class="form-control focus-ring" formControlName="breakStart" />
+        </app-form-field>
+        <app-form-field label="สิ้นสุดพัก" forId="sh-bend" [control]="shiftForm.controls.breakEnd">
+          <input id="sh-bend" type="time" class="form-control focus-ring" formControlName="breakEnd" />
+        </app-form-field>
+      </div>
+      <app-form-field label="เวลาพัก (นาที)" forId="sh-bdur" [control]="shiftForm.controls.breakDurationMinutes">
+        <input id="sh-bdur" type="number" class="form-control focus-ring" formControlName="breakDurationMinutes" />
+      </app-form-field>
+      <div class="drawer-actions">
+        <button type="button" class="btn-secondary focus-ring" (click)="isDrawerOpen.set(false)">ยกเลิก</button>
+        <button type="submit" class="btn-primary focus-ring" [disabled]="isSubmitting()">บันทึกกะงาน</button>
+      </div>
+    </form>
+  </app-slide-drawer>
+</div>

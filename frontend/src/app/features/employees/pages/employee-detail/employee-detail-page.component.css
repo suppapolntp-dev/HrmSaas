@@ -1,0 +1,7 @@
+:host {
+  display: block;
+}
+
+.profile-card {
+  padding: var(--space-4);
+}
